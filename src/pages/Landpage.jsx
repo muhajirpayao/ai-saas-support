@@ -513,7 +513,14 @@ function Onboarding({ onDashboard }) {
 // ════════════════════════════════════════════════════════════
 function AuthFlow({ onDashboard }) {
   const [page, setPage] = useState("login");
-  if (page==="login") return <LoginPage onSignup={()=>setPage("signup")} onForgot={()=>setPage("forgot")} onSuccess={()=>setPage("onboarding")} />;
+  if (page==="login") return (
+    <LoginPage
+      onSignup={()=>setPage("signup")}
+      onForgot={()=>setPage("forgot")}
+      onSuccess={onDashboard}
+      onNeedsOnboarding={()=>setPage("onboarding")}
+    />
+  );
   if (page==="signup") return <SignupPage onLogin={()=>setPage("login")} onSuccess={()=>setPage("onboarding")} />;
   if (page==="forgot") return <ForgotPage onBack={()=>setPage("login")} />;
   if (page==="onboarding") return <Onboarding onDashboard={onDashboard} />;

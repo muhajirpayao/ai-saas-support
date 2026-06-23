@@ -1,4 +1,7 @@
+// src/pages/AuthFlow.jsx
 import { useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { signIn, signUp } from "@/features/auth/authApi";
 
 // ── Icons ──────────────────────────────────────────────────────────────────
 const Icon = ({ name, className = "w-5 h-5" }) => {
@@ -106,21 +109,50 @@ function Btn({ children, onClick, variant = "primary", disabled, className = "",
 }
 
 // ── LOGIN PAGE ─────────────────────────────────────────────────────────────
-function LoginPage({ onSignup, onForgot, onSuccess }) {
+function LoginPage({ onSignup, onForgot, onSuccess, onNeedsOnboarding }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const errs = {};
     if (!email) errs.email = "Email is required";
     if (!password) errs.password = "Password is required";
-    setErrors(errs);
-    if (Object.keys(errs).length) return;
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+
     setLoading(true);
-    setTimeout(() => { setLoading(false); onSuccess(); }, 1200);
+    setErrors({});
+    try {
+      const { user } = await signIn(email, password);
+
+      // Check if this user has already completed onboarding (has an organization)
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("organization_id")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.organization_id) {
+        // Has an org → go straight to dashboard
+        onSuccess();
+      } else {
+        // No org yet → send to onboarding
+        onNeedsOnboarding();
+      }
+    } catch (err) {
+      const msg = err.message || "";
+      if (msg.toLowerCase().includes("invalid login credentials")) {
+        setErrors({ password: "Wrong email or password. Please try again." });
+      } else if (msg.toLowerCase().includes("email not confirmed")) {
+        setErrors({ email: "Please confirm your email address before signing in." });
+      } else {
+        setErrors({ password: msg || "Something went wrong. Try again." });
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -190,16 +222,30 @@ function SignupPage({ onLogin, onSuccess }) {
   const [agreed, setAgreed] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const handleSignup = () => {
+  const validate = () => {
     const errs = {};
     if (!name) errs.name = "Name is required";
     if (!email) errs.email = "Email is required";
-    if (!password || password.length < 8) errs.password = "Password must be at least 8 characters";
-    if (!agreed) errs.agreed = "You must agree to terms";
-    setErrors(errs);
-    if (Object.keys(errs).length) return;
+    if (!password || password.length < 8) errs.password = "Min. 8 characters";
+    if (!agreed) errs.agreed = "You must agree to the terms";
+    return errs;
+  };
+
+  const handleSignup = async () => {
+    const errs = validate();
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+
     setLoading(true);
-    setTimeout(() => { setLoading(false); onSuccess(); }, 1200);
+    setErrors({});
+    try {
+      await signUp(email, password, name, ""); // company collected in onboarding
+      onSuccess(); // → go to onboarding
+    } catch (err) {
+      console.error("Signup error:", err);
+      setErrors({ email: err.message || "Something went wrong. Try again." });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const strength = password.length === 0 ? 0 : password.length < 6 ? 1 : password.length < 10 ? 2 : 3;
@@ -291,10 +337,12 @@ function ForgotPage({ onBack }) {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!email) return;
     setLoading(true);
-    setTimeout(() => { setLoading(false); setSent(true); }, 1200);
+    await supabase.auth.resetPasswordForEmail(email);
+    setLoading(false);
+    setSent(true);
   };
 
   return (
@@ -366,6 +414,7 @@ function StepOrg({ data, setData, onNext }) {
   const industries = ["SaaS / Software", "E-commerce", "Healthcare", "Finance", "Education", "Agency / Consulting", "Other"];
   const sizes = ["1–10", "11–50", "51–200", "201–1000", "1000+"];
   const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
 
   const validate = () => {
     const errs = {};
@@ -374,6 +423,43 @@ function StepOrg({ data, setData, onNext }) {
     if (!data.size) errs.size = "Select a company size";
     setErrors(errs);
     return Object.keys(errs).length === 0;
+  };
+
+  const handleNext = async () => {
+    if (!validate()) return;
+    setSaving(true);
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Create org row
+      const { data: org, error: orgErr } = await supabase
+        .from("organizations")
+        .insert({
+          name: data.company,
+          industry: data.industry,
+          company_size: data.size,
+        })
+        .select("id")
+        .single();
+      if (orgErr) throw orgErr;
+
+      // Link profile to org
+      const { error: profErr } = await supabase
+        .from("profiles")
+        .update({ organization_id: org.id })
+        .eq("id", user.id);
+      if (profErr) throw profErr;
+
+      // Store org id in local state for subsequent steps
+      setData({ ...data, orgId: org.id });
+      onNext();
+    } catch (err) {
+      setErrors({ company: err.message });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -426,7 +512,9 @@ function StepOrg({ data, setData, onNext }) {
       </div>
 
       <div className="mt-8">
-        <Btn onClick={() => validate() && onNext()}>Continue <Icon name="arrowRight" className="w-4 h-4" /></Btn>
+        <Btn onClick={handleNext} disabled={saving}>
+          {saving ? <><Icon name="refresh" className="w-4 h-4 animate-spin" />Saving…</> : <>Continue <Icon name="arrowRight" className="w-4 h-4" /></>}
+        </Btn>
       </div>
     </div>
   );
@@ -463,6 +551,15 @@ function StepPlan({ data, setData, onNext, onBack }) {
       features: ["Unlimited AI resolutions", "Unlimited knowledge bases", "All integrations + API", "Custom AI personas", "SSO + SOC 2", "Dedicated CSM"],
     },
   ];
+
+  const handleNext = async () => {
+    if (!data.plan) return;
+    // Save plan to org row
+    if (data.orgId) {
+      await supabase.from("organizations").update({ plan: data.plan }).eq("id", data.orgId);
+    }
+    onNext();
+  };
 
   return (
     <div>
@@ -503,7 +600,7 @@ function StepPlan({ data, setData, onNext, onBack }) {
 
       <div className="flex gap-3">
         <Btn variant="outline" onClick={onBack} className="w-auto px-6"><Icon name="arrowLeft" className="w-4 h-4" />Back</Btn>
-        <Btn onClick={onNext} disabled={!data.plan}>Continue <Icon name="arrowRight" className="w-4 h-4" /></Btn>
+        <Btn onClick={handleNext} disabled={!data.plan}>Continue <Icon name="arrowRight" className="w-4 h-4" /></Btn>
       </div>
     </div>
   );
@@ -511,11 +608,31 @@ function StepPlan({ data, setData, onNext, onBack }) {
 
 // Step 3: AI Setup
 function StepAI({ data, setData, onNext, onBack }) {
+  const [saving, setSaving] = useState(false);
   const tones = [
     { id: "friendly", label: "Friendly 😊", desc: "Warm, casual, and approachable" },
     { id: "professional", label: "Professional 🤝", desc: "Polished and business-appropriate" },
     { id: "formal", label: "Formal 🎩", desc: "Structured, precise, and formal" },
   ];
+
+  const handleFinish = async () => {
+    setSaving(true);
+    try {
+      if (data.orgId) {
+        await supabase.from("organizations").update({
+          ai_assistant_name: data.aiName || "Support Assistant",
+          ai_tone: data.tone || "professional",
+          ai_instructions: data.instructions || "",
+        }).eq("id", data.orgId);
+      }
+      onNext();
+    } catch (err) {
+      console.error("AI setup save error:", err);
+      onNext(); // proceed anyway
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div>
@@ -572,7 +689,9 @@ function StepAI({ data, setData, onNext, onBack }) {
 
       <div className="flex gap-3 mt-8">
         <Btn variant="outline" onClick={onBack} className="w-auto px-6"><Icon name="arrowLeft" className="w-4 h-4" />Back</Btn>
-        <Btn onClick={onNext}>Finish setup <Icon name="arrowRight" className="w-4 h-4" /></Btn>
+        <Btn onClick={handleFinish} disabled={saving}>
+          {saving ? <><Icon name="refresh" className="w-4 h-4 animate-spin" />Saving…</> : <>Finish setup <Icon name="arrowRight" className="w-4 h-4" /></>}
+        </Btn>
       </div>
     </div>
   );
@@ -639,148 +758,21 @@ function Onboarding({ onDashboard }) {
   );
 }
 
-// ── BILLING PAGE (inside dashboard) ───────────────────────────────────────
-function BillingPage({ onClose }) {
-  const [showUpgrade, setShowUpgrade] = useState(false);
-
-  return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="max-w-3xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">Billing & Subscription</h1>
-            <p className="text-sm text-slate-500 mt-0.5">Manage your plan and payment details</p>
-          </div>
-          <button onClick={onClose} className="text-sm text-blue-500 font-semibold hover:text-blue-600">← Back to dashboard</button>
-        </div>
-
-        {/* Current plan */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-5">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm font-bold text-slate-900">Growth Plan</span>
-                <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase tracking-wide">Active</span>
-              </div>
-              <p className="text-sm text-slate-500">$149 / month · Renews July 23, 2026</p>
-            </div>
-            <button onClick={() => setShowUpgrade(true)} className="text-sm font-semibold bg-gradient-to-r from-blue-500 to-violet-600 text-white px-4 py-2 rounded-xl hover:opacity-90 shadow-md shadow-blue-200">
-              Upgrade →
-            </button>
-          </div>
-          <div className="mt-5 pt-5 border-t border-slate-100 grid grid-cols-3 gap-4">
-            {[
-              { label: "AI resolutions used", val: "3,241 / 5,000" },
-              { label: "Knowledge bases", val: "2 / 5" },
-              { label: "Team members", val: "4 / 10" },
-            ].map((s, i) => (
-              <div key={i}>
-                <div className="text-sm font-bold text-slate-900">{s.val}</div>
-                <div className="text-xs text-slate-500">{s.label}</div>
-                <div className="mt-1.5 h-1 rounded-full bg-slate-100 overflow-hidden">
-                  <div className="h-full rounded-full bg-gradient-to-r from-blue-400 to-violet-500" style={{ width: i === 0 ? "64%" : i === 1 ? "40%" : "40%" }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Payment method */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-5">
-          <h3 className="text-sm font-semibold text-slate-900 mb-4">Payment method</h3>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-8 rounded-lg bg-slate-100 flex items-center justify-center"><Icon name="creditCard" className="w-5 h-5 text-slate-500" /></div>
-            <div>
-              <div className="text-sm font-semibold text-slate-900">Visa ending in 4242</div>
-              <div className="text-xs text-slate-500">Expires 08/27</div>
-            </div>
-            <button className="ml-auto text-xs text-blue-500 font-semibold hover:text-blue-600">Update</button>
-          </div>
-        </div>
-
-        {/* Invoice history */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-          <h3 className="text-sm font-semibold text-slate-900 mb-4">Invoice history</h3>
-          <div className="space-y-0">
-            {[
-              { date: "Jun 1, 2026", amount: "$149.00", status: "Paid" },
-              { date: "May 1, 2026", amount: "$149.00", status: "Paid" },
-              { date: "Apr 1, 2026", amount: "$149.00", status: "Paid" },
-            ].map((inv, i) => (
-              <div key={i} className="flex items-center justify-between py-3 border-b last:border-0 border-slate-50">
-                <div className="text-sm text-slate-600">{inv.date}</div>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-semibold text-slate-900">{inv.amount}</span>
-                  <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase tracking-wide">{inv.status}</span>
-                  <button className="text-xs text-blue-500 hover:underline">PDF</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Upgrade modal */}
-      {showUpgrade && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-sm p-8">
-            <div className="text-center mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-violet-200">
-                <Icon name="star" className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900">Upgrade to Enterprise</h3>
-              <p className="text-sm text-slate-500 mt-1">Unlimited resolutions, SSO, dedicated CSM, and more.</p>
-            </div>
-            <div className="bg-slate-50 rounded-xl p-4 mb-6 space-y-2">
-              {["Unlimited AI resolutions", "Unlimited knowledge bases", "SSO + SOC 2 compliance", "Dedicated Customer Success Manager"].map((f, i) => (
-                <div key={i} className="flex items-center gap-2 text-sm text-slate-700">
-                  <Icon name="checkCircle" className="w-4 h-4 text-emerald-500 shrink-0" />{f}
-                </div>
-              ))}
-            </div>
-            <Btn className="mb-3">Talk to sales →</Btn>
-            <Btn variant="ghost" onClick={() => setShowUpgrade(false)}>Maybe later</Btn>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── EXPIRED / BLOCKED ──────────────────────────────────────────────────────
-function ExpiredPage({ onRenew }) {
-  return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-      <div className="text-center max-w-md">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-400 to-red-500 flex items-center justify-center mx-auto mb-5 shadow-xl shadow-rose-200">
-          <Icon name="shield" className="w-8 h-8 text-white" />
-        </div>
-        <div className="inline-flex items-center gap-2 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold px-4 py-2 rounded-full mb-5">
-          <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />Subscription expired
-        </div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-3">Your plan has ended</h2>
-        <p className="text-sm text-slate-500 mb-8 leading-relaxed">
-          Your Growth plan expired on <strong className="text-slate-700">June 1, 2026</strong>. Renew now to restore access to your dashboard and resume AI support.
-        </p>
-        <div className="space-y-3 max-w-xs mx-auto">
-          <Btn onClick={onRenew}>Renew subscription →</Btn>
-          <Btn variant="outline">Talk to sales</Btn>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── ROOT ROUTER ─────────────────────────────────────────────────────────────
 export default function AuthFlow() {
-  // pages: "login" | "signup" | "forgot" | "onboarding" | "billing" | "expired" | "done"
   const [page, setPage] = useState("login");
 
-  if (page === "login") return <LoginPage onSignup={() => setPage("signup")} onForgot={() => setPage("forgot")} onSuccess={() => setPage("billing")} />;
+  if (page === "login") return (
+    <LoginPage
+      onSignup={() => setPage("signup")}
+      onForgot={() => setPage("forgot")}
+      onSuccess={() => setPage("dashboard")}
+      onNeedsOnboarding={() => setPage("onboarding")}
+    />
+  );
   if (page === "signup") return <SignupPage onLogin={() => setPage("login")} onSuccess={() => setPage("onboarding")} />;
   if (page === "forgot") return <ForgotPage onBack={() => setPage("login")} />;
-  if (page === "onboarding") return <Onboarding onDashboard={() => setPage("billing")} />;
-  if (page === "billing") return <BillingPage onClose={() => setPage("expired")} />;
-  if (page === "expired") return <ExpiredPage onRenew={() => setPage("login")} />;
+  if (page === "onboarding") return <Onboarding onDashboard={() => setPage("dashboard")} />;
+  if (page === "dashboard") return <div className="p-8 text-center text-slate-600">Redirecting to dashboard…</div>;
   return null;
 }
