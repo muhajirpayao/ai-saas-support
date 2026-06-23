@@ -100,14 +100,14 @@ function LandingPage({ onSignIn, onSignUp }) {
           <div className="flex flex-col lg:flex-row items-center gap-16">
             <div className="flex-1 text-center lg:text-left">
               <div className="inline-flex items-center gap-2 bg-white border border-blue-100 text-blue-600 text-xs font-semibold px-4 py-2 rounded-full shadow-sm mb-6">
-                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />Now with GPT-4o Â· 8-second avg resolution
+                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />Now with GPT-v4.1
               </div>
               <h1 className="text-5xl lg:text-6xl font-extrabold text-slate-900 leading-[1.08] tracking-tight mb-6">
                 Customer support<br />that{" "}<span className="bg-linear-to-r from-blue-500 to-violet-600 bg-clip-text text-transparent">never sleeps.</span>
               </h1>
               <p className="text-lg text-slate-500 leading-relaxed mb-10 max-w-lg mx-auto lg:mx-0">SupportAI resolves 80% of tickets instantly â€” without a human. Plug in your knowledge base, go live in minutes.</p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-                <button onClick={onSignUp} className="bg-gradient-to-r from-blue-500 to-violet-600 text-white font-semibold px-8 py-3.5 rounded-xl shadow-lg shadow-blue-200/60 hover:opacity-90 transition-all text-sm">Start for free â†’</button>
+                <button onClick={onSignUp} className="bg-gradient-to-r from-blue-500 to-violet-600 text-white font-semibold px-8 py-3.5 rounded-xl shadow-lg shadow-blue-200/60 hover:opacity-90 transition-all text-sm">Start for free</button>
                 <button className="bg-white border border-slate-200 text-slate-700 font-semibold px-8 py-3.5 rounded-xl hover:border-slate-300 hover:bg-slate-50 transition-all text-sm shadow-sm">Watch demo</button>
               </div>
               <p className="mt-5 text-xs text-slate-400 font-medium">No credit card required Â· 14-day free trial Â· Cancel anytime</p>
@@ -223,7 +223,7 @@ function LandingPage({ onSignIn, onSignUp }) {
           <h2 className="text-4xl font-extrabold text-white leading-tight tracking-tight mb-5">Ready to transform your support?</h2>
           <p className="text-blue-200 text-lg mb-10 leading-relaxed">Start your free 14-day trial. No credit card, no commitment.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button onClick={onSignUp} className="bg-white text-violet-700 font-bold px-9 py-4 rounded-xl hover:bg-blue-50 transition-colors shadow-2xl text-sm">Start for free â†’</button>
+            <button onClick={onSignUp} className="bg-white text-violet-700 font-bold px-9 py-4 rounded-xl hover:bg-blue-50 transition-colors shadow-2xl text-sm">Start for free</button>
             <button className="border border-white/30 text-white font-semibold px-9 py-4 rounded-xl hover:bg-white/10 transition-colors text-sm">Talk to sales</button>
           </div>
         </div>
