@@ -558,7 +558,7 @@ function PlaceholderPage({ name, dark }) {
 }
 
 // ─── APP ─────────────────────────────────────────────────────────────────────
-export default function App() {
+export default function Dashboard() {
   const [activeNav, setActiveNav] = useState("dashboard");
   const [collapsed, setCollapsed] = useState(false);
   const [dark, setDark] = useState(false);

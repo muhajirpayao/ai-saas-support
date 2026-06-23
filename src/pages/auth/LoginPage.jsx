@@ -28,11 +28,14 @@ export default function LoginPage() {
     setErrors({});
     try {
       const { user } = await signIn(email, password);
+
+      // Check if this user has already completed onboarding
       const { data: profile } = await supabase
         .from("profiles")
         .select("organization_id")
         .eq("id", user.id)
         .single();
+
       if (profile?.organization_id) {
         navigate("/dashboard");
       } else {
@@ -52,35 +55,81 @@ export default function LoginPage() {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/dashboard` },
+    });
+  };
+
   return (
     <AuthLayout>
       <Card>
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-blue-500 to-violet-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
             <Icon name="sparkles" className="w-6 h-6 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Welcome back</h1>
           <p className="text-sm text-slate-500 mt-1.5">Sign in to your SupportAI workspace</p>
         </div>
-        <Btn variant="outline" className="mb-6 gap-3"><GoogleIcon />Continue with Google</Btn>
+
+        <Btn variant="outline" className="mb-6 gap-3" onClick={handleGoogleLogin}>
+          <GoogleIcon />
+          Continue with Google
+        </Btn>
+
         <div className="flex items-center gap-3 mb-6">
           <div className="flex-1 h-px bg-slate-100" />
           <span className="text-xs text-slate-400 font-medium">or continue with email</span>
           <div className="flex-1 h-px bg-slate-100" />
         </div>
+
         <div className="space-y-4">
-          <Input label="Work email" type="email" placeholder="you@company.com" icon="mail" value={email} onChange={e => setEmail(e.target.value)} error={errors.email} />
-          <Input label="Password" type={showPass ? "text" : "password"} placeholder="••••••••" icon="lock" value={password} onChange={e => setPassword(e.target.value)} error={errors.password}
-            rightEl={<button type="button" onClick={() => setShowPass(!showPass)} className="text-slate-400 hover:text-slate-600"><Icon name={showPass ? "eyeOff" : "eye"} className="w-4 h-4" /></button>} />
+          <Input
+            label="Work email"
+            type="email"
+            placeholder="you@company.com"
+            icon="mail"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            error={errors.email}
+          />
+          <Input
+            label="Password"
+            type={showPass ? "text" : "password"}
+            placeholder="••••••••"
+            icon="lock"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            error={errors.password}
+            rightEl={
+              <button type="button" onClick={() => setShowPass(!showPass)} className="text-slate-400 hover:text-slate-600">
+                <Icon name={showPass ? "eyeOff" : "eye"} className="w-4 h-4" />
+              </button>
+            }
+          />
         </div>
+
         <div className="flex justify-end mt-2 mb-6">
-          <button onClick={() => navigate("/forgot-password")} className="text-xs text-blue-500 font-medium hover:text-blue-600">Forgot password?</button>
+          <button
+            onClick={() => navigate("/forgot-password")}
+            className="text-xs text-blue-500 font-medium hover:text-blue-600"
+          >
+            Forgot password?
+          </button>
         </div>
+
         <Btn onClick={handleLogin} disabled={loading}>
-          {loading ? <><Icon name="refresh" className="w-4 h-4 animate-spin" />Signing in…</> : "Sign in →"}
+          {loading
+            ? <><Icon name="refresh" className="w-4 h-4 animate-spin" />Signing in…</>
+            : "Sign in →"}
         </Btn>
+
         <p className="text-center text-sm text-slate-500 mt-6">
-          No account? <button onClick={() => navigate("/signup")} className="text-blue-500 font-semibold hover:text-blue-600">Start for free</button>
+          No account?{" "}
+          <button onClick={() => navigate("/signup")} className="text-blue-500 font-semibold hover:text-blue-600">
+            Start for free
+          </button>
         </p>
       </Card>
     </AuthLayout>

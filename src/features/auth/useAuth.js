@@ -1,10 +1,10 @@
-// src/features/auth/useAuth.ts
+// src/features/auth/useAuth.js
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 export function useAuth() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signUp } from "@/features/auth/authApi";
+import { supabase } from "@/lib/supabase";
 import { Icon } from "@/components/ui/Icon";
 import { GoogleIcon } from "@/components/ui/GoogleIcon";
 import { AuthLayout } from "@/components/layout/AuthLayout";
@@ -11,7 +12,6 @@ import { Btn } from "@/components/ui/Btn";
 
 export default function SignupPage() {
   const navigate = useNavigate();
-
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,94 +19,122 @@ export default function SignupPage() {
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [createdUser, setCreatedUser] = useState(null); // <-- holds account info for the success card
+  const [createdUser, setCreatedUser] = useState(null);
 
-  const validate = () => {
+  const handleSignup = async () => {
     const errs = {};
-    if (!name) errs.name = "Name is required";
-    if (!email) errs.email = "Email is required";
+    if (!name.trim()) errs.name = "Name is required";
+    if (!email.trim()) errs.email = "Email is required";
     if (!password || password.length < 8) errs.password = "Min. 8 characters";
-    if (!agreed) errs.agreed = "You must agree to terms";
-    return errs;
+    if (!agreed) errs.agreed = "You must agree to the terms";
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+
+    setLoading(true);
+    setErrors({});
+    try {
+      const result = await signUp(email, password, name);
+      const user = result?.user ?? result;
+
+      // Upsert profile row so it exists for onboarding.
+      // Works whether email confirmation is required or not.
+      if (user?.id) {
+        await supabase
+          .from("profiles")
+          .upsert(
+            { id: user.id, full_name: name, role: "admin" },
+            { onConflict: "id", ignoreDuplicates: true }
+          );
+      }
+
+      setCreatedUser({
+        id: user?.id ?? "unknown",
+        name,
+        email,
+        // Supabase sets confirmed_at only when email confirmation is disabled
+        needsConfirmation: !user?.confirmed_at,
+      });
+    } catch (err) {
+      const msg = err.message || "";
+      if (msg.toLowerCase().includes("already registered")) {
+        setErrors({ email: "An account with this email already exists." });
+      } else {
+        setErrors({ email: msg || "Something went wrong. Try again." });
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
-const handleSignup = async () => {
-  const errs = {};
-  if (!name) errs.name = "Name is required";
-  if (!email) errs.email = "Email is required";
-  if (!password || password.length < 8) errs.password = "Min. 8 characters";
-  if (!agreed) errs.agreed = "You must agree to terms";
-  if (Object.keys(errs).length) { setErrors(errs); return; }
+  const handleGoogleSignup = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/onboarding` },
+    });
+  };
 
-  setLoading(true);
-  setErrors({});
-  try {
-    await signUp(email, password, name, "");
-    onSuccess();
-  } catch (err) {
-    setErrors({ email: err.message || "Something went wrong." });
-  } finally {
-    setLoading(false);
-  }
-};
-
-  const strength = password.length === 0 ? 0 : password.length < 6 ? 1 : password.length < 10 ? 2 : 3;
+  const strength =
+    password.length === 0 ? 0 : password.length < 6 ? 1 : password.length < 10 ? 2 : 3;
   const strengthColors = ["", "bg-rose-400", "bg-amber-400", "bg-emerald-400"];
   const strengthLabels = ["", "Weak", "Fair", "Strong"];
 
-  // ── Success state: show the account that was just created ──────────────
+  // ── Success screen ────────────────────────────────────────────────────────
   if (createdUser) {
     return (
       <AuthLayout>
         <Card>
           <div className="text-center mb-6">
-            <div className="w-14 h-14 rounded-2xl bg-linear-to-br from-emerald-400 to-teal-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-200">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-200">
               <Icon name="checkCircle" className="w-7 h-7 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Account created 🎉</h1>
-            <p className="text-sm text-slate-500 mt-1.5">
+            <p className="text-sm text-slate-500 mt-1.5 leading-relaxed">
               {createdUser.needsConfirmation
-                ? "Check your inbox to confirm your email before signing in."
-                : "You're signed in and ready to go."}
+                ? "We sent a confirmation link to your email. Click it, then come back to sign in."
+                : "You're all set — let's finish setting up your workspace."}
             </p>
           </div>
 
-          <div className="bg-slate-50 rounded-xl border border-slate-100 p-4 mb-6 space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-500">Name</span>
-              <span className="font-medium text-slate-900">{createdUser.name}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-500">Email</span>
-              <span className="font-medium text-slate-900">{createdUser.email}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-500">User ID</span>
-              <span className="font-mono text-xs text-slate-600">{createdUser.id?.slice(0, 12)}…</span>
-            </div>
+          <div className="bg-slate-50 rounded-xl border border-slate-100 p-4 mb-6 space-y-2.5">
+            <Row label="Name" value={createdUser.name} />
+            <Row label="Email" value={createdUser.email} />
+            <Row
+              label="User ID"
+              value={
+                createdUser.id !== "unknown"
+                  ? `${createdUser.id.slice(0, 12)}…`
+                  : "—"
+              }
+              mono
+            />
           </div>
 
-          <Btn onClick={() => navigate("/onboarding")}>
-            Continue to onboarding <Icon name="arrowRight" className="w-4 h-4" />
-          </Btn>
+          {createdUser.needsConfirmation ? (
+            <Btn variant="outline" onClick={() => navigate("/login")}>
+              <Icon name="arrowLeft" className="w-4 h-4" /> Back to sign in
+            </Btn>
+          ) : (
+            <Btn onClick={() => navigate("/onboarding")}>
+              Continue to setup <Icon name="arrowRight" className="w-4 h-4" />
+            </Btn>
+          )}
         </Card>
       </AuthLayout>
     );
   }
 
-  // ── Normal signup form ───────────────────────────────────────────────────
+  // ── Signup form ───────────────────────────────────────────────────────────
   return (
     <AuthLayout>
       <Card>
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-blue-500 to-violet-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
             <Icon name="sparkles" className="w-6 h-6 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Create your account</h1>
           <p className="text-sm text-slate-500 mt-1.5">14-day free trial · No credit card required</p>
         </div>
 
-        <Btn variant="outline" className="mb-6 gap-3">
+        <Btn variant="outline" className="mb-6 gap-3" onClick={handleGoogleSignup}>
           <GoogleIcon />
           Sign up with Google
         </Btn>
@@ -118,8 +146,23 @@ const handleSignup = async () => {
         </div>
 
         <div className="space-y-4">
-          <Input label="Full name" placeholder="Jamie Diaz" icon="user" value={name} onChange={(e) => setName(e.target.value)} error={errors.name} />
-          <Input label="Work email" type="email" placeholder="you@company.com" icon="mail" value={email} onChange={(e) => setEmail(e.target.value)} error={errors.email} />
+          <Input
+            label="Full name"
+            placeholder="Jamie Diaz"
+            icon="user"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            error={errors.name}
+          />
+          <Input
+            label="Work email"
+            type="email"
+            placeholder="you@company.com"
+            icon="mail"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            error={errors.email}
+          />
           <div>
             <Input
               label="Password"
@@ -127,10 +170,14 @@ const handleSignup = async () => {
               placeholder="Min. 8 characters"
               icon="lock"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={e => setPassword(e.target.value)}
               error={errors.password}
               rightEl={
-                <button type="button" onClick={() => setShowPass(!showPass)} className="text-slate-400 hover:text-slate-600">
+                <button
+                  type="button"
+                  onClick={() => setShowPass(!showPass)}
+                  className="text-slate-400 hover:text-slate-600"
+                >
                   <Icon name={showPass ? "eyeOff" : "eye"} className="w-4 h-4" />
                 </button>
               }
@@ -138,11 +185,24 @@ const handleSignup = async () => {
             {password.length > 0 && (
               <div className="mt-2 flex items-center gap-2">
                 <div className="flex gap-1 flex-1">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i <= strength ? strengthColors[strength] : "bg-slate-100"}`} />
+                  {[1, 2, 3].map(i => (
+                    <div
+                      key={i}
+                      className={`h-1 flex-1 rounded-full transition-colors ${
+                        i <= strength ? strengthColors[strength] : "bg-slate-100"
+                      }`}
+                    />
                   ))}
                 </div>
-                <span className={`text-xs font-medium ${strength === 1 ? "text-rose-500" : strength === 2 ? "text-amber-500" : "text-emerald-500"}`}>
+                <span
+                  className={`text-xs font-medium ${
+                    strength === 1
+                      ? "text-rose-500"
+                      : strength === 2
+                      ? "text-amber-500"
+                      : "text-emerald-500"
+                  }`}
+                >
                   {strengthLabels[strength]}
                 </span>
               </div>
@@ -152,9 +212,16 @@ const handleSignup = async () => {
 
         <div className="mt-4 mb-6">
           <label className="flex items-start gap-3 cursor-pointer">
-            <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 rounded border-slate-300 text-blue-500 focus:ring-blue-200" />
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={e => setAgreed(e.target.checked)}
+              className="mt-0.5 rounded border-slate-300 text-blue-500 focus:ring-blue-200"
+            />
             <span className="text-xs text-slate-500 leading-relaxed">
-              I agree to SupportAI's <a href="#" className="text-blue-500 hover:underline">Terms of Service</a> and{" "}
+              I agree to SupportAI's{" "}
+              <a href="#" className="text-blue-500 hover:underline">Terms of Service</a>{" "}
+              and{" "}
               <a href="#" className="text-blue-500 hover:underline">Privacy Policy</a>
             </span>
           </label>
@@ -162,23 +229,33 @@ const handleSignup = async () => {
         </div>
 
         <Btn onClick={handleSignup} disabled={loading}>
-          {loading ? (
-            <>
-              <Icon name="refresh" className="w-4 h-4 animate-spin" />
-              Creating account…
-            </>
-          ) : (
-            "Create account →"
-          )}
+          {loading
+            ? <><Icon name="refresh" className="w-4 h-4 animate-spin" />Creating account…</>
+            : "Create account →"}
         </Btn>
 
         <p className="text-center text-sm text-slate-500 mt-6">
           Have an account?{" "}
-          <button onClick={() => navigate("/login")} className="text-blue-500 font-semibold hover:text-blue-600">
+          <button
+            onClick={() => navigate("/login")}
+            className="text-blue-500 font-semibold hover:text-blue-600"
+          >
             Sign in
           </button>
         </p>
       </Card>
     </AuthLayout>
+  );
+}
+
+// Small helper used in the success card
+function Row({ label, value, mono = false }) {
+  return (
+    <div className="flex justify-between text-sm">
+      <span className="text-slate-500">{label}</span>
+      <span className={`font-medium text-slate-900 ${mono ? "font-mono text-xs" : ""}`}>
+        {value}
+      </span>
+    </div>
   );
 }
