@@ -60,7 +60,7 @@ const handleSignup = async () => {
       <AuthLayout>
         <Card>
           <div className="text-center mb-6">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-200">
+            <div className="w-14 h-14 rounded-2xl bg-linear-to-br from-emerald-400 to-teal-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-200">
               <Icon name="checkCircle" className="w-7 h-7 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Account created 🎉</h1>
@@ -99,7 +99,7 @@ const handleSignup = async () => {
     <AuthLayout>
       <Card>
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
+          <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-blue-500 to-violet-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
             <Icon name="sparkles" className="w-6 h-6 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Create your account</h1>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-
+import { supabase } from "@/lib/supabase";
+import { signIn, signUp } from "@/features/auth/authApi";
 // ════════════════════════════════════════════════════════════
 //  SHARED ICONS
 // ════════════════════════════════════════════════════════════
@@ -64,10 +65,10 @@ const GoogleIcon = () => (
 // ════════════════════════════════════════════════════════════
 function AuthLayout({ children, wide = false }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-violet-50/20 flex flex-col">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/20 to-violet-50/20 flex flex-col">
       <nav className="h-16 flex items-center px-8 border-b border-slate-100 bg-white/80 backdrop-blur-sm">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-md shadow-blue-200">
+          <div className="w-8 h-8 rounded-lg bg-linear-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-md shadow-blue-200">
             <span className="text-white text-sm font-bold">S</span>
           </div>
           <span className="font-semibold text-slate-900 text-lg tracking-tight">SupportAI</span>
@@ -138,21 +139,45 @@ function LoginPage({ onSignup, onForgot, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const handleLogin = () => {
-    const errs = {};
-    if (!email) errs.email = "Email is required";
-    if (!password) errs.password = "Password is required";
-    setErrors(errs);
-    if (Object.keys(errs).length) return;
-    setLoading(true);
-    setTimeout(() => { setLoading(false); onSuccess(); }, 1200);
-  };
+const handleLogin = async () => {
+  const errs = {};
+  if (!email) errs.email = "Email is required";
+  if (!password) errs.password = "Password is required";
+  if (Object.keys(errs).length) { setErrors(errs); return; }
+
+  setLoading(true);
+  setErrors({});
+  try {
+    const { user } = await signIn(email, password);
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("organization_id")
+      .eq("id", user.id)
+      .single();
+    if (profile?.organization_id) {
+      onSuccess();
+    } else {
+      onNeedsOnboarding();
+    }
+  } catch (err) {
+    const msg = err.message || "";
+    if (msg.toLowerCase().includes("invalid login credentials")) {
+      setErrors({ password: "Wrong email or password." });
+    } else if (msg.toLowerCase().includes("email not confirmed")) {
+      setErrors({ email: "Please confirm your email before signing in." });
+    } else {
+      setErrors({ password: msg || "Something went wrong." });
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <AuthLayout>
       <Card>
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
+          <div className="w-12 h-12 rounded-2xl bg-linear-to-brrom-blue-500 to-violet-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
             <Icon name="sparkles" className="w-6 h-6 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Welcome back</h1>
@@ -212,7 +237,7 @@ function SignupPage({ onLogin, onSuccess }) {
     <AuthLayout>
       <Card>
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
+          <div className="w-12 h-12 rounded-2xl bg-linear-to-brrom-blue-500 to-violet-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
             <Icon name="sparkles" className="w-6 h-6 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Create your account</h1>
@@ -268,7 +293,7 @@ function ForgotPage({ onBack }) {
         {!sent ? (
           <>
             <div className="text-center mb-8">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-amber-200">
+              <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-amber-400 to-orange-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-amber-200">
                 <Icon name="lock" className="w-6 h-6 text-white" />
               </div>
               <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Forgot your password?</h1>
@@ -310,7 +335,7 @@ function StepIndicator({ current }) {
         return (
           <div key={i} className="flex items-center flex-1 last:flex-none">
             <div className="flex flex-col items-center gap-1.5">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${done?"bg-emerald-500 text-white":active?"bg-gradient-to-br from-blue-500 to-violet-600 text-white shadow-md shadow-blue-200":"bg-slate-100 text-slate-400"}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${done?"bg-emerald-500 text-white":active?"bg-linear-to-br from-blue-500 to-violet-600 text-white shadow-md shadow-blue-200":"bg-slate-100 text-slate-400"}`}>
                 {done ? <Icon name="check" className="w-4 h-4" /> : i+1}
               </div>
               <span className={`text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap ${active?"text-blue-600":done?"text-emerald-500":"text-slate-400"}`}>{label}</span>
@@ -393,7 +418,7 @@ function StepPlan({ data, setData, onNext, onBack }) {
         {plans.map(plan => (
           <button key={plan.id} type="button" onClick={()=>setData({...data,plan:plan.id})}
             className={`relative rounded-2xl border-2 p-5 text-left transition-all ${data.plan===plan.id?`${plan.color} bg-blue-50/30 shadow-md`:"border-slate-100 hover:border-slate-200"}`}>
-            {plan.badge && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-500 to-violet-600 text-white text-[10px] font-bold px-3 py-1 rounded-full">{plan.badge}</div>}
+            {plan.badge && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-linear-to-r from-blue-500 to-violet-600 text-white text-[10px] font-bold px-3 py-1 rounded-full">{plan.badge}</div>}
             {data.plan===plan.id && <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center"><Icon name="check" className="w-3 h-3 text-white" /></div>}
             <div className="mb-3">
               <div className="text-sm font-bold text-slate-900">{plan.name}</div>
@@ -466,7 +491,7 @@ function StepSuccess({ data, onDashboard }) {
   const planLabel = {starter:"Free Trial",growth:"Growth",enterprise:"Enterprise"}[data.plan]||"Growth";
   return (
     <div className="text-center py-8">
-      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-emerald-200">
+      <div className="w-20 h-20 rounded-full bg-linear-to-br from-emerald-400 to-teal-500 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-emerald-200">
         <Icon name="checkCircle" className="w-10 h-10 text-white" />
       </div>
       <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold px-4 py-2 rounded-full mb-5">
@@ -623,7 +648,7 @@ function LandingPage({ onSignIn }) {
           </div>
         </div>
       </nav>
-      <section className="min-h-screen bg-gradient-to-b from-slate-50 via-blue-50/30 to-white pt-32 pb-24 px-6 relative overflow-hidden">
+      <section className="min-h-screen bg-linear-to-b from-slate-50 via-blue-50/30 to-white pt-32 pb-24 px-6 relative overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-blue-100/60 to-transparent rounded-full blur-3xl pointer-events-none" />
         <div className="max-w-6xl mx-auto relative">
           <div className="flex flex-col lg:flex-row items-center gap-16">
@@ -632,7 +657,7 @@ function LandingPage({ onSignIn }) {
                 <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />Now with GPT-4o · 8-second avg resolution
               </div>
               <h1 className="text-5xl lg:text-6xl font-extrabold text-slate-900 leading-[1.08] tracking-tight mb-6">
-                Customer support<br />that{" "}<span className="bg-gradient-to-r from-blue-500 to-violet-600 bg-clip-text text-transparent">never sleeps.</span>
+                Customer support<br />that{" "}<span className="bg-linear-to-r from-blue-500 to-violet-600 bg-clip-text text-transparent">never sleeps.</span>
               </h1>
               <p className="text-lg text-slate-500 leading-relaxed mb-10 max-w-lg mx-auto lg:mx-0">SupportAI resolves 80% of tickets instantly — without a human. Plug in your knowledge base, go live in minutes.</p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
@@ -1156,6 +1181,13 @@ function Dashboard({ onSignOut }) {
 export default function Landpage() {
   const [page, setPage] = useState("landing");
   if (page === "dashboard") return <Dashboard onSignOut={() => setPage("landing")} />;
-  if (page === "auth") return <AuthFlow onDashboard={() => setPage("dashboard")} />;
-  return <LandingPage onSignIn={() => setPage("auth")} />;
+  if (page==="login") return (
+  <LoginPage
+    onSignup={()=>setPage("signup")}
+    onForgot={()=>setPage("forgot")}
+    onSuccess={() => setPage("dashboard")}
+    onNeedsOnboarding={()=>setPage("onboarding")}
+  />
+);
+  return <LandingPage onSignIn={() => setPage("login")} />;
 }
