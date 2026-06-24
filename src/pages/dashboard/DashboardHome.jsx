@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useProfile } from "@/hooks/useProfile";
 import InboxPage from "./Inbox/InboxPage";
+import CustomersPage from "./customers/CustomersPage";
 // ─── THEME TOKENS ─────────────────────────────────────────────────────────────
 // Light: clean slate
 // Dark: obsidian + emerald (matches Landpage / SignupPage)
@@ -828,8 +829,9 @@ export default function Dashboard() {
 
           {/* Content */}
           {activeNav === "dashboard" && <DashboardPage t={t} firstName={firstName} />}
-{activeNav === "inbox" && <InboxPage t={t} />}
-{!["dashboard", "inbox"].includes(activeNav) && <PlaceholderPage name={pageNames[activeNav]} t={t} />}
+          {activeNav === "inbox" && <InboxPage t={t} />}
+          {activeNav === "customers" && <CustomersPage t={t} />}
+          {!["dashboard", "inbox","customers"].includes(activeNav) && <PlaceholderPage name={pageNames[activeNav]} t={t} />}
         </div>
       </div>
     </>
