@@ -105,7 +105,7 @@ function StepOrg({ data, setData, onNext }) {
             </div>
             <input
               type="text"
-              placeholder="Acme Corp"
+              placeholder="MJR Corp"
               value={data.company || ""}
               onChange={e => setData({ ...data, company: e.target.value })}
               className={`w-full pl-10 pr-4 py-2.5 text-sm border rounded-xl outline-none transition-all

@@ -1,6 +1,10 @@
+// src/pages/dashboard/Dashboard.jsx
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
+import { useProfile } from "@/hooks/useProfile";
 
-// ─── ICONS (inline SVG to avoid dependencies) ────────────────────────────────
+// ─── ICONS ───────────────────────────────────────────────────────────────────
 const Icon = ({ name, className = "w-5 h-5" }) => {
   const icons = {
     dashboard: <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />,
@@ -25,9 +29,10 @@ const Icon = ({ name, className = "w-5 h-5" }) => {
     trending: <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />,
     menu: <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />,
     x: <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />,
-    dot: <circle cx="12" cy="12" r="4" />,
     arrowUp: <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />,
     sparkles: <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />,
+    logout: <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />,
+    user: <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />,
   };
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -36,7 +41,7 @@ const Icon = ({ name, className = "w-5 h-5" }) => {
   );
 };
 
-// ─── DATA ────────────────────────────────────────────────────────────────────
+// ─── NAV ITEMS ────────────────────────────────────────────────────────────────
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: "dashboard" },
   { id: "inbox", label: "Inbox", icon: "inbox", badge: 12 },
@@ -47,6 +52,7 @@ const navItems = [
   { id: "settings", label: "Settings", icon: "settings" },
 ];
 
+// ─── STATIC DATA ──────────────────────────────────────────────────────────────
 const conversations = [
   { id: 1, name: "Sarah Chen", avatar: "SC", color: "from-pink-400 to-rose-500", subject: "Can't access my account after password reset", time: "2m ago", status: "open", priority: "high", tag: "Auth" },
   { id: 2, name: "Marcus Webb", avatar: "MW", color: "from-blue-400 to-indigo-500", subject: "Billing shows double charge for November", time: "14m ago", status: "waiting", priority: "high", tag: "Billing" },
@@ -69,7 +75,15 @@ const notifications = [
   { text: "CSAT score reached 94% this week", time: "1h ago", unread: false },
 ];
 
-// ─── ANIMATED COUNTER ────────────────────────────────────────────────────────
+// ─── GREETING ─────────────────────────────────────────────────────────────────
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+// ─── ANIMATED COUNTER ─────────────────────────────────────────────────────────
 function AnimatedNumber({ target, duration = 1200 }) {
   const [value, setValue] = useState(0);
   useEffect(() => {
@@ -85,7 +99,7 @@ function AnimatedNumber({ target, duration = 1200 }) {
   return <>{value.toLocaleString()}</>;
 }
 
-// ─── MINI SPARKLINE ──────────────────────────────────────────────────────────
+// ─── SPARKLINE ────────────────────────────────────────────────────────────────
 function Sparkline({ data, color = "#6366f1", fill = "#6366f120" }) {
   const max = Math.max(...data), min = Math.min(...data);
   const w = 80, h = 32;
@@ -103,8 +117,26 @@ function Sparkline({ data, color = "#6366f1", fill = "#6366f120" }) {
   );
 }
 
+// ─── AVATAR ───────────────────────────────────────────────────────────────────
+function Avatar({ initials, avatarUrl, size = "w-8 h-8", textSize = "text-xs" }) {
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt="avatar"
+        className={`${size} rounded-full object-cover shrink-0`}
+      />
+    );
+  }
+  return (
+    <div className={`${size} rounded-full bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center text-white ${textSize} font-bold shrink-0`}>
+      {initials}
+    </div>
+  );
+}
+
 // ─── SIDEBAR ─────────────────────────────────────────────────────────────────
-function Sidebar({ active, onNav, collapsed, dark }) {
+function Sidebar({ active, onNav, collapsed, dark, fullName, initials, avatarUrl, role }) {
   return (
     <aside
       className={`flex flex-col h-full transition-all duration-300 ${
@@ -117,7 +149,6 @@ function Sidebar({ active, onNav, collapsed, dark }) {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-lg shadow-violet-900/40">
             <span className="text-white text-sm font-bold">S</span>
           </div>
-          {/* AI pulse */}
           <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-900 animate-pulse" />
         </div>
         {!collapsed && (
@@ -170,13 +201,15 @@ function Sidebar({ active, onNav, collapsed, dark }) {
       {/* User footer */}
       <div className={`border-t border-slate-800/60 p-3 ${collapsed ? "flex justify-center" : ""}`}>
         <div className={`flex items-center gap-2.5 ${collapsed ? "" : "px-1"}`}>
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-            JD
-          </div>
+          <Avatar initials={initials} avatarUrl={avatarUrl} size="w-8 h-8" textSize="text-xs" />
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <div className="text-white text-xs font-semibold truncate">Jamie Diaz</div>
-              <div className="text-slate-500 text-[10px] truncate">Admin</div>
+              <div className="text-white text-xs font-semibold truncate">
+                {fullName || "Loading…"}
+              </div>
+              <div className="text-slate-500 text-[10px] truncate capitalize">
+                {role || "Member"}
+              </div>
             </div>
           )}
           {!collapsed && <Icon name="chevronDown" className="w-3.5 h-3.5 text-slate-600 shrink-0" />}
@@ -187,10 +220,9 @@ function Sidebar({ active, onNav, collapsed, dark }) {
 }
 
 // ─── TOPBAR ──────────────────────────────────────────────────────────────────
-function Topbar({ dark, onToggleDark, onToggleSidebar, collapsed, onMobileMenu }) {
+function Topbar({ dark, onToggleDark, onToggleSidebar, collapsed, onMobileMenu, fullName, email, initials, avatarUrl, role, onSignOut }) {
   const [showNotifs, setShowNotifs] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [showOrg, setShowOrg] = useState(false);
   const notifRef = useRef();
   const profileRef = useRef();
 
@@ -220,18 +252,6 @@ function Topbar({ dark, onToggleDark, onToggleSidebar, collapsed, onMobileMenu }
           <Icon name={collapsed ? "chevronRight" : "chevronLeft"} className="w-4 h-4" />
         </button>
 
-        {/* Org switcher */}
-        <button
-          onClick={() => setShowOrg(!showOrg)}
-          className={`hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
-            dark ? "border-slate-700 bg-slate-800/60 text-slate-300 hover:bg-slate-700" : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
-          }`}
-        >
-          <div className="w-4 h-4 rounded bg-gradient-to-br from-blue-500 to-violet-600" />
-          Acme Corp
-          <Icon name="chevronDown" className="w-3.5 h-3.5 opacity-60" />
-        </button>
-
         {/* Search */}
         <div className={`hidden md:flex items-center gap-2 px-3 py-2 rounded-xl border text-sm w-64 ${
           dark ? "bg-slate-800/60 border-slate-700 text-slate-400" : "bg-slate-50 border-slate-200 text-slate-400"
@@ -249,7 +269,7 @@ function Topbar({ dark, onToggleDark, onToggleSidebar, collapsed, onMobileMenu }
           onClick={onToggleDark}
           className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-slate-800 text-slate-400" : "hover:bg-slate-100 text-slate-500"}`}
         >
-          <Icon name={dark ? "sun" : "moon"} className="w-4.5 h-4.5 w-[18px] h-[18px]" />
+          <Icon name={dark ? "sun" : "moon"} className="w-[18px] h-[18px]" />
         </button>
 
         {/* Notifications */}
@@ -286,26 +306,50 @@ function Topbar({ dark, onToggleDark, onToggleSidebar, collapsed, onMobileMenu }
         <div className="relative" ref={profileRef}>
           <button
             onClick={() => setShowProfile(!showProfile)}
-            className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className={`flex items-center gap-2 pl-1 pr-2 py-1 rounded-xl transition-colors ${dark ? "hover:bg-slate-800" : "hover:bg-slate-100"}`}
           >
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold">
-              JD
-            </div>
+            <Avatar initials={initials} avatarUrl={avatarUrl} size="w-7 h-7" textSize="text-xs" />
             <Icon name="chevronDown" className="w-3.5 h-3.5 text-slate-400" />
           </button>
+
           {showProfile && (
-            <div className={`absolute right-0 top-full mt-2 w-52 rounded-2xl shadow-2xl border z-50 overflow-hidden ${dark ? "bg-slate-900 border-slate-700" : "bg-white border-slate-100"}`}>
+            <div className={`absolute right-0 top-full mt-2 w-56 rounded-2xl shadow-2xl border z-50 overflow-hidden ${dark ? "bg-slate-900 border-slate-700" : "bg-white border-slate-100"}`}>
+              {/* User info */}
               <div className={`px-4 py-3.5 border-b ${dark ? "border-slate-800" : "border-slate-100"}`}>
-                <p className={`text-sm font-semibold ${dark ? "text-white" : "text-slate-900"}`}>Jamie Diaz</p>
-                <p className="text-xs text-slate-400">jamie@acmecorp.com</p>
+                <div className="flex items-center gap-3 mb-2">
+                  <Avatar initials={initials} avatarUrl={avatarUrl} size="w-9 h-9" textSize="text-sm" />
+                  <div className="min-w-0">
+                    <p className={`text-sm font-semibold truncate ${dark ? "text-white" : "text-slate-900"}`}>
+                      {fullName || "—"}
+                    </p>
+                    <p className="text-xs text-slate-400 truncate">{email || "—"}</p>
+                  </div>
+                </div>
+                <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${
+                  dark ? "bg-blue-900/40 text-blue-400" : "bg-blue-50 text-blue-600"
+                }`}>
+                  {role || "Member"}
+                </span>
               </div>
-              {["Profile", "Preferences", "Billing", "Sign out"].map((item) => (
+
+              {/* Menu items */}
+              {["Profile", "Preferences", "Billing"].map((item) => (
                 <button key={item} className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
-                  item === "Sign out" ? "text-red-500 hover:bg-red-50" : dark ? "text-slate-300 hover:bg-slate-800" : "text-slate-700 hover:bg-slate-50"
+                  dark ? "text-slate-300 hover:bg-slate-800" : "text-slate-700 hover:bg-slate-50"
                 }`}>
                   {item}
                 </button>
               ))}
+
+              <div className={`border-t ${dark ? "border-slate-800" : "border-slate-100"}`}>
+                <button
+                  onClick={onSignOut}
+                  className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                >
+                  <Icon name="logout" className="w-4 h-4" />
+                  Sign out
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -323,7 +367,7 @@ function StatCard({ label, value, change, icon, color, sparkData, dark }) {
     }`}>
       <div className="flex items-start justify-between mb-4">
         <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center shadow-lg`}>
-          <Icon name={icon} className="w-4.5 h-4.5 w-[18px] h-[18px] text-white" />
+          <Icon name={icon} className="w-[18px] h-[18px] text-white" />
         </div>
         <Sparkline data={sparkData} color={isPositive ? "#6366f1" : "#f43f5e"} fill={isPositive ? "#6366f115" : "#f43f5e15"} />
       </div>
@@ -353,7 +397,7 @@ function StatusBadge({ status }) {
   return <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${s.cls}`}>{s.label}</span>;
 }
 
-// ─── AI PERFORMANCE CARD ─────────────────────────────────────────────────────
+// ─── AI PERFORMANCE ──────────────────────────────────────────────────────────
 function AIPerformance({ dark }) {
   const metrics = [
     { label: "Auto-resolved", value: 80, color: "from-blue-500 to-violet-600" },
@@ -383,10 +427,7 @@ function AIPerformance({ dark }) {
               <span className={`text-xs font-bold ${dark ? "text-white" : "text-slate-900"}`}>{m.value}%</span>
             </div>
             <div className={`h-1.5 rounded-full ${dark ? "bg-slate-700" : "bg-slate-100"}`}>
-              <div
-                className={`h-full rounded-full bg-gradient-to-r ${m.color} transition-all duration-1000`}
-                style={{ width: `${m.value}%` }}
-              />
+              <div className={`h-full rounded-full bg-gradient-to-r ${m.color} transition-all duration-1000`} style={{ width: `${m.value}%` }} />
             </div>
           </div>
         ))}
@@ -401,7 +442,7 @@ function AIPerformance({ dark }) {
           <div className="text-[10px] text-slate-400">Avg resolution</div>
         </div>
         <div className="text-center">
-          <div className={`text-lg font-extrabold text-emerald-500`}>$0.12</div>
+          <div className="text-lg font-extrabold text-emerald-500">$0.12</div>
           <div className="text-[10px] text-slate-400">Cost per ticket</div>
         </div>
       </div>
@@ -422,12 +463,9 @@ function QuickActions({ dark }) {
       <h3 className={`text-sm font-semibold mb-4 ${dark ? "text-white" : "text-slate-900"}`}>Quick actions</h3>
       <div className="grid grid-cols-2 gap-2">
         {actions.map((a, i) => (
-          <button
-            key={i}
-            className={`flex flex-col items-center gap-2 p-3.5 rounded-xl border transition-all hover:scale-[1.02] ${
-              dark ? "bg-slate-700/40 border-slate-600/40 hover:bg-slate-700/60" : "bg-slate-50 border-slate-100 hover:bg-slate-100"
-            }`}
-          >
+          <button key={i} className={`flex flex-col items-center gap-2 p-3.5 rounded-xl border transition-all hover:scale-[1.02] ${
+            dark ? "bg-slate-700/40 border-slate-600/40 hover:bg-slate-700/60" : "bg-slate-50 border-slate-100 hover:bg-slate-100"
+          }`}>
             <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${a.color} flex items-center justify-center shadow-md ${dark ? "" : a.shadow}`}>
               <Icon name={a.icon} className="w-4 h-4 text-white" />
             </div>
@@ -440,7 +478,7 @@ function QuickActions({ dark }) {
 }
 
 // ─── DASHBOARD PAGE ──────────────────────────────────────────────────────────
-function DashboardPage({ dark }) {
+function DashboardPage({ dark, firstName }) {
   const stats = [
     { label: "Open Tickets", value: 47, change: -12, icon: "chat", color: "from-blue-500 to-blue-600", sparkData: [30, 45, 38, 52, 48, 41, 47] },
     { label: "Waiting Response", value: 13, change: 8, icon: "clock", color: "from-amber-400 to-orange-500", sparkData: [8, 12, 10, 15, 11, 14, 13] },
@@ -450,11 +488,11 @@ function DashboardPage({ dark }) {
 
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-6">
-      {/* Welcome */}
+      {/* Welcome — uses real first name */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className={`text-xl font-bold tracking-tight ${dark ? "text-white" : "text-slate-900"}`}>
-            Good morning, Jamie 👋
+            {getGreeting()}{firstName ? `, ${firstName}` : ""} 👋
           </h1>
           <p className={`text-sm mt-0.5 ${dark ? "text-slate-400" : "text-slate-500"}`}>
             Here's what's happening with your support queue today.
@@ -473,7 +511,7 @@ function DashboardPage({ dark }) {
 
       {/* Main grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Conversations — spans 2 cols */}
+        {/* Conversations */}
         <div className={`xl:col-span-2 rounded-2xl border overflow-hidden ${dark ? "bg-slate-800/60 border-slate-700/60" : "bg-white border-slate-100"}`}>
           <div className={`px-5 py-4 border-b flex items-center justify-between ${dark ? "border-slate-700/60" : "border-slate-100"}`}>
             <div>
@@ -484,12 +522,7 @@ function DashboardPage({ dark }) {
           </div>
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {conversations.map((c) => (
-              <div
-                key={c.id}
-                className={`flex items-start gap-3.5 px-5 py-4 cursor-pointer transition-colors ${
-                  dark ? "hover:bg-slate-700/30 divide-slate-700" : "hover:bg-slate-50/80"
-                }`}
-              >
+              <div key={c.id} className={`flex items-start gap-3.5 px-5 py-4 cursor-pointer transition-colors ${dark ? "hover:bg-slate-700/30 divide-slate-700" : "hover:bg-slate-50/80"}`}>
                 <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${c.color} flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-sm`}>
                   {c.avatar}
                 </div>
@@ -557,14 +590,46 @@ function PlaceholderPage({ name, dark }) {
   );
 }
 
-// ─── APP ─────────────────────────────────────────────────────────────────────
+// ─── LOADING SCREEN ───────────────────────────────────────────────────────────
+function LoadingScreen() {
+  return (
+    <div className="flex h-screen items-center justify-center bg-slate-950">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center animate-pulse">
+          <span className="text-white font-bold">S</span>
+        </div>
+        <p className="text-slate-500 text-sm">Loading your workspace…</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── APP ROOT ─────────────────────────────────────────────────────────────────
 export default function Dashboard() {
+  const navigate = useNavigate();
+  const { profile, user, loading, initials, firstName } = useProfile();
+
   const [activeNav, setActiveNav] = useState("dashboard");
   const [collapsed, setCollapsed] = useState(false);
   const [dark, setDark] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const pageNames = { dashboard: "Dashboard", inbox: "Inbox", customers: "Customers", team: "Team", knowledge: "Knowledge Base", analytics: "Analytics", settings: "Settings" };
+  const pageNames = {
+    dashboard: "Dashboard",
+    inbox: "Inbox",
+    customers: "Customers",
+    team: "Team",
+    knowledge: "Knowledge Base",
+    analytics: "Analytics",
+    settings: "Settings",
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
+  };
+
+  if (loading) return <LoadingScreen />;
 
   return (
     <div className={`flex h-screen overflow-hidden font-sans antialiased ${dark ? "bg-slate-950" : "bg-slate-50"}`}>
@@ -573,14 +638,32 @@ export default function Dashboard() {
         <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setMobileOpen(false)}>
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
           <div className="absolute left-0 top-0 h-full w-60">
-            <Sidebar active={activeNav} onNav={(id) => { setActiveNav(id); setMobileOpen(false); }} collapsed={false} dark={dark} />
+            <Sidebar
+              active={activeNav}
+              onNav={(id) => { setActiveNav(id); setMobileOpen(false); }}
+              collapsed={false}
+              dark={dark}
+              fullName={profile?.full_name}
+              initials={initials}
+              avatarUrl={profile?.avatar_url}
+              role={profile?.role}
+            />
           </div>
         </div>
       )}
 
       {/* Sidebar — desktop */}
       <div className={`hidden lg:flex shrink-0 transition-all duration-300 ${collapsed ? "w-16" : "w-60"}`}>
-        <Sidebar active={activeNav} onNav={setActiveNav} collapsed={collapsed} dark={dark} />
+        <Sidebar
+          active={activeNav}
+          onNav={setActiveNav}
+          collapsed={collapsed}
+          dark={dark}
+          fullName={profile?.full_name}
+          initials={initials}
+          avatarUrl={profile?.avatar_url}
+          role={profile?.role}
+        />
       </div>
 
       {/* Main */}
@@ -591,6 +674,12 @@ export default function Dashboard() {
           onToggleSidebar={() => setCollapsed(!collapsed)}
           collapsed={collapsed}
           onMobileMenu={() => setMobileOpen(true)}
+          fullName={profile?.full_name}
+          email={user?.email}
+          initials={initials}
+          avatarUrl={profile?.avatar_url}
+          role={profile?.role}
+          onSignOut={handleSignOut}
         />
 
         {/* Breadcrumb */}
@@ -602,7 +691,7 @@ export default function Dashboard() {
 
         {/* Page content */}
         {activeNav === "dashboard"
-          ? <DashboardPage dark={dark} />
+          ? <DashboardPage dark={dark} firstName={firstName} />
           : <PlaceholderPage name={pageNames[activeNav]} dark={dark} />
         }
       </div>
