@@ -396,7 +396,7 @@ function Topbar({ t, onToggleDark, dark, onToggleSidebar, collapsed, onMobileMen
             }}
           />
           {searchVal.length === 0 && (
-            <kbd style={{ fontSize: 10, padding: "2px 5px", borderRadius: 5, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.textMuted, fontFamily: "monospace", flexShrink: 0 }}>⌘K</kbd>
+            <kbd style={{ fontSize: 10, padding: "2px 5px", borderRadius: 5, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.textMuted, fontFamily: "monospace", flexShrink: 0 }}>⌘</kbd>
           )}
         </div>
       </div>
