@@ -1,129 +1,611 @@
-﻿import { useState, useEffect } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+
+// ─── Style injection (once) ────────────────────────────────────────────────
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ── Base ── */
+  .lp-root {
+    background: #0a0a0a;
+    color: #f1f0f5;
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+  }
+  .lp-root a { text-decoration: none; }
+  .lp-serif { font-family: 'Playfair Display', serif; }
+
+  /* ── Utilities ── */
+  .lp-glass {
+    background: rgba(255,255,255,0.03);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .lp-glow-sm { box-shadow: 0 0 40px -12px rgba(16,185,129,0.3); }
+  .lp-glow-lg { box-shadow: 0 0 70px -6px rgba(16,185,129,0.45); }
+  .lp-emerald-badge {
+    background: rgba(16,185,129,0.10);
+    border: 1px solid rgba(16,185,129,0.25);
+    color: #6ee7b7;
+  }
+  .lp-pulse { animation: lp-pulse 2s ease-in-out infinite; }
+  @keyframes lp-pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+  .lp-bounce { animation: lp-bounce 1.2s ease-in-out infinite; }
+  @keyframes lp-bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-5px)} }
+
+  /* ── Nav ── */
+  .lp-nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 32px;
+    background: rgba(20,21,24,0.82);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    transition: background .3s;
+  }
+  .lp-nav.lp-nav-solid { background: rgba(10,10,10,0.97); }
+  .lp-nav-logo {
+    font-size: 13px; font-weight: 700; letter-spacing: .18em;
+    color: #f1f0f5; white-space: nowrap;
+  }
+  .lp-nav-links { display: flex; gap: 28px; align-items: center; }
+  .lp-nav-links a {
+    font-size: 13px; font-weight: 500; color: rgba(161,168,188,0.8);
+    transition: color .2s;
+  }
+  .lp-nav-links a:hover { color: #f1f0f5; }
+  .lp-nav-actions { display: flex; gap: 10px; align-items: center; }
+  .lp-btn-signin {
+    background: none; border: none; color: rgba(161,168,188,0.85);
+    font-size: 13px; font-weight: 500; cursor: pointer; padding: 8px 10px;
+    transition: color .2s; white-space: nowrap;
+  }
+  .lp-btn-signin:hover { color: #f1f0f5; }
+  .lp-btn-cta {
+    background: #065f46; color: #fff; border: none;
+    border-radius: 999px; padding: 9px 20px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: background .2s, transform .1s; white-space: nowrap;
+  }
+  .lp-btn-cta:hover { background: #047857; }
+  .lp-btn-cta:active { transform: scale(.97); }
+
+  /* ── Hero ── */
+  .lp-hero {
+    position: relative; overflow: hidden;
+    padding: 140px 24px 80px; text-align: center;
+  }
+  .lp-hero-radial {
+    position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
+    width: 800px; height: 500px;
+    background: rgba(6,95,70,0.13);
+    filter: blur(110px); border-radius: 50%;
+    pointer-events: none; z-index: 0;
+  }
+  .lp-hero-inner {
+    position: relative; z-index: 1;
+    max-width: 1120px; margin: 0 auto;
+  }
+  .lp-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 5px 14px; border-radius: 999px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(110,231,183,0.25);
+    font-size: 11px; font-weight: 600; letter-spacing: .06em;
+    color: #6ee7b7; margin-bottom: 22px;
+  }
+  .lp-pill-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: #6ee7b7;
+  }
+  .lp-hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(36px, 5.5vw, 62px); font-weight: 700; line-height: 1.09;
+    letter-spacing: -.02em; color: #f1f0f5; margin-bottom: 18px;
+  }
+  .lp-hero-sub {
+    font-size: 17px; color: rgba(161,168,188,0.82); max-width: 520px;
+    margin: 0 auto 36px; line-height: 1.65;
+  }
+  .lp-hero-btns {
+    display: flex; justify-content: center; gap: 12px;
+    flex-wrap: wrap; margin-bottom: 64px;
+  }
+  .lp-btn-hero-primary {
+    background: #065f46; color: #fff; border: none; border-radius: 12px;
+    padding: 13px 28px; font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: background .2s;
+  }
+  .lp-btn-hero-primary:hover { background: #047857; }
+  .lp-btn-hero-ghost {
+    background: rgba(255,255,255,0.04); color: #f1f0f5;
+    border: 1px solid rgba(255,255,255,0.10); border-radius: 12px;
+    padding: 13px 24px; font-size: 13px; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; gap: 7px; transition: background .2s;
+  }
+  .lp-btn-hero-ghost:hover { background: rgba(255,255,255,0.08); }
+  .lp-hero-note { font-size: 11px; color: rgba(161,168,188,0.45); margin-top: -48px; margin-bottom: 48px; }
+
+  /* ── Hero Demo ── */
+  .lp-demo-outer { position: relative; max-width: 820px; margin: 0 auto; }
+  .lp-demo-floating-badges {
+    display: flex; gap: 10px;
+    position: absolute; top: -36px; left: 4px; z-index: 20;
+  }
+  .lp-demo-badge {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px; border-radius: 10px;
+  }
+  .lp-demo-badge-num { font-size: 20px; font-weight: 700; line-height: 1; }
+  .lp-demo-badge-lbl { font-size: 10px; font-weight: 600; line-height: 1.35; }
+  .lp-demo-card { border-radius: 24px; padding: 8px; }
+  .lp-demo-screen {
+    width: 100%; aspect-ratio: 16/9; border-radius: 16px; overflow: hidden;
+    background: #111 url('https://lh3.googleusercontent.com/aida-public/AB6AXuABGRCDtER2PZ8xE-6StV4UnnlsJ-Ko1RQHaosjVfguLaD119YdkPAFoc09FBZATDhJ5YfjOmSXF5wD458PAGjtjU3kqn5bO-uhoRQfaQFqF6yZa0GyUnyonMRW_ZXWfThzQD44v8A8i8VpHRZbwDqoVCZWZuAIZEGYuHnUPZXOLS5PGDhrvq-jDf8eW8GMHyduwwvhzrhTdVakgbrPTxIUbiuLYCjdk3ASekZAItqV8OmL2ZUIM8ofkNRi2G8-QjmVa7nNUYuoE6E') center/cover no-repeat;
+    position: relative;
+  }
+  .lp-demo-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.48); backdrop-filter: blur(3px);
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 20px; gap: 10px; align-items: flex-start;
+  }
+  .lp-demo-bubble {
+    max-width: 75%; padding: 10px 14px; border-radius: 14px;
+    font-size: 13px; line-height: 1.5;
+  }
+  .lp-demo-bubble.user {
+    background: rgba(255,255,255,0.13);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.92);
+    border-bottom-left-radius: 4px;
+  }
+  .lp-demo-bubble.ai {
+    background: rgba(6,95,70,0.30);
+    border: 1px solid rgba(110,231,183,0.22);
+    color: #f1f0f5; border-bottom-left-radius: 4px;
+  }
+  .lp-demo-ai-tag {
+    display: flex; align-items: center; gap: 5px; margin-bottom: 5px;
+    font-size: 10px; font-weight: 600; color: #6ee7b7;
+  }
+
+  /* ── Animated chat widget (compact) ── */
+  .lp-chat-widget {
+    background: rgba(255,255,255,0.035);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px; padding: 16px;
+    width: 100%; max-width: 300px;
+  }
+  .lp-chat-header {
+    display: flex; align-items: center; gap: 7px;
+    padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.06);
+    margin-bottom: 12px; font-size: 10px; font-weight: 600;
+    color: #6ee7b7; letter-spacing: .07em; text-transform: uppercase;
+  }
+  .lp-chat-messages { display: flex; flex-direction: column; gap: 8px; min-height: 80px; }
+  .lp-chat-row-user { display: flex; justify-content: flex-end; }
+  .lp-chat-row-ai   { display: flex; justify-content: flex-start; }
+  .lp-chat-msg {
+    max-width: 82%; padding: 8px 11px; border-radius: 12px;
+    font-size: 12px; line-height: 1.45;
+  }
+  .lp-chat-msg.user {
+    background: rgba(255,255,255,0.09);
+    border: 1px solid rgba(255,255,255,0.07); color: rgba(255,255,255,0.88);
+    border-bottom-right-radius: 3px;
+  }
+  .lp-chat-msg.ai {
+    background: rgba(6,95,70,0.25);
+    border: 1px solid rgba(110,231,183,0.2); color: #f1f0f5;
+    border-bottom-left-radius: 3px;
+  }
+  .lp-typing { display: flex; gap: 3px; padding: 2px 0; }
+  .lp-typing span {
+    width: 5px; height: 5px; border-radius: 50%; background: #6ee7b7; opacity: .65;
+  }
+  .lp-chat-input-mock {
+    margin-top: 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 8px; padding: 8px 12px;
+    font-size: 11px; color: rgba(255,255,255,0.28);
+  }
+
+  /* ── Section base ── */
+  .lp-section { padding: 88px 24px; }
+  .lp-inner { max-width: 1120px; margin: 0 auto; }
+  .lp-section-head { text-align: center; margin-bottom: 56px; }
+  .lp-eyebrow {
+    font-size: 10px; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: #6ee7b7; margin-bottom: 10px;
+  }
+  .lp-section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(26px, 3.5vw, 38px); font-weight: 700;
+    color: #f1f0f5; line-height: 1.22; letter-spacing: -.01em;
+  }
+  .lp-section-sub { font-size: 15px; color: rgba(161,168,188,0.68); margin-top: 8px; }
+  .lp-bg-alt { background: rgba(255,255,255,0.018); }
+
+  /* ── Feature grid ── */
+  .lp-feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .lp-feature-card {
+    padding: 28px; border-radius: 20px; transition: background .25s;
+  }
+  .lp-feature-card:hover { background: rgba(255,255,255,0.055); }
+  .lp-feature-icon {
+    width: 42px; height: 42px; border-radius: 10px;
+    background: rgba(6,95,70,0.15); border: 1px solid rgba(110,231,183,0.2);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 16px; font-size: 19px;
+  }
+  .lp-feature-card h3 { font-size: 15px; font-weight: 600; color: #f1f0f5; margin-bottom: 8px; }
+  .lp-feature-card p  { font-size: 13px; color: rgba(161,168,188,0.72); line-height: 1.6; }
+
+  /* ── Steps grid ── */
+  .lp-steps-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  .lp-step-card { padding: 28px; border-radius: 20px; }
+  .lp-step-num {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 1px solid rgba(110,231,183,0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: #6ee7b7;
+    margin-bottom: 14px; transition: background .2s, color .2s;
+    flex-shrink: 0;
+  }
+  .lp-step-card:hover .lp-step-num { background: #6ee7b7; color: #0a0a0a; }
+  .lp-step-tag {
+    display: inline-block; font-size: 10px; font-weight: 600;
+    color: #6ee7b7; background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(110,231,183,0.22);
+    border-radius: 999px; padding: 3px 9px; margin-bottom: 12px;
+  }
+  .lp-step-card h4 { font-size: 14px; font-weight: 600; color: #f1f0f5; margin-bottom: 6px; }
+  .lp-step-card p  { font-size: 13px; color: rgba(161,168,188,0.68); line-height: 1.6; }
+
+  /* ── Pricing ── */
+  .lp-pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px; align-items: end;
+  }
+  .lp-plan { padding: 32px; border-radius: 20px; display: flex; flex-direction: column; position: relative; }
+  .lp-plan.lp-plan-featured {
+    border-color: rgba(110,231,183,0.38) !important;
+    background: rgba(255,255,255,0.055) !important;
+    transform: scale(1.035);
+    box-shadow: 0 0 50px -12px rgba(16,185,129,0.3);
+  }
+  .lp-plan-badge {
+    position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+    background: #6ee7b7; color: #0a0a0a;
+    font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    padding: 3px 14px; border-radius: 999px; white-space: nowrap;
+  }
+  .lp-plan-name { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+  .lp-plan-name.muted { color: rgba(161,168,188,0.6); }
+  .lp-plan-name.accent { color: #6ee7b7; }
+  .lp-plan-desc { font-size: 12px; color: rgba(161,168,188,0.6); margin-bottom: 16px; }
+  .lp-plan-price {
+    font-family: 'Playfair Display', serif;
+    font-size: 36px; font-weight: 700; color: #f1f0f5; margin-bottom: 4px;
+  }
+  .lp-plan-price-per { font-family: 'Inter',sans-serif; font-size: 14px; color: rgba(161,168,188,0.5); font-weight: 400; }
+  .lp-plan-features { list-style: none; margin: 20px 0 24px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+  .lp-plan-features li { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: rgba(161,168,188,0.82); }
+  .lp-plan-features li.bright { color: #f1f0f5; }
+  .lp-check { color: #6ee7b7; font-size: 14px; margin-top: 1px; flex-shrink: 0; }
+  .lp-plan-btn {
+    width: 100%; padding: 12px; border-radius: 10px;
+    font-size: 13px; font-weight: 600; cursor: pointer; transition: .2s;
+  }
+  .lp-plan-btn.outline {
+    background: transparent; color: #f1f0f5;
+    border: 1px solid rgba(255,255,255,0.13);
+  }
+  .lp-plan-btn.outline:hover { background: rgba(255,255,255,0.07); }
+  .lp-plan-btn.solid { background: #065f46; color: #fff; border: none; }
+  .lp-plan-btn.solid:hover { background: #047857; }
+
+  /* ── Testimonials ── */
+  .lp-testi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .lp-testi-card { padding: 24px; border-radius: 20px; }
+  .lp-testi-stars { display: flex; gap: 2px; margin-bottom: 14px; }
+  .lp-testi-card blockquote {
+    font-size: 13px; font-style: italic; color: rgba(241,240,245,0.78);
+    line-height: 1.65; margin-bottom: 20px;
+  }
+  .lp-testi-author { display: flex; align-items: center; gap: 10px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.06); }
+  .lp-testi-avatar { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
+  .lp-testi-name { font-size: 13px; font-weight: 700; color: #f1f0f5; }
+  .lp-testi-role { font-size: 11px; color: rgba(161,168,188,0.55); }
+
+  /* ── CTA ── */
+  .lp-cta-section { padding: 88px 24px; position: relative; overflow: hidden; text-align: center; }
+  .lp-cta-glow {
+    position: absolute; inset: 0; pointer-events: none;
+    background: rgba(6,95,70,0.12); filter: blur(110px);
+    border-radius: 50%; transform: translateY(30%);
+  }
+  .lp-cta-box {
+    position: relative; max-width: 860px; margin: 0 auto;
+    padding: 72px 40px; border-radius: 40px;
+    border: 1px solid rgba(110,231,183,0.22);
+    box-shadow: 0 0 70px -6px rgba(16,185,129,0.42);
+  }
+  .lp-cta-box h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 4.5vw, 50px); font-weight: 700;
+    color: #f1f0f5; line-height: 1.12; margin-bottom: 14px;
+  }
+  .lp-cta-box p { font-size: 16px; color: rgba(161,168,188,0.72); margin-bottom: 36px; }
+  .lp-cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+  /* ── Footer ── */
+  .lp-footer {
+    background: #0e0e0e; border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 60px 24px 28px;
+  }
+  .lp-footer-inner { max-width: 1120px; margin: 0 auto; }
+  .lp-footer-top { display: flex; flex-wrap: wrap; gap: 40px; justify-content: space-between; margin-bottom: 40px; }
+  .lp-footer-brand { max-width: 220px; }
+  .lp-footer-logo { font-size: 16px; font-weight: 800; color: #f1f0f5; margin-bottom: 10px; }
+  .lp-footer-desc { font-size: 13px; color: rgba(161,168,188,0.55); line-height: 1.6; }
+  .lp-footer-cols { display: grid; grid-template-columns: repeat(4,1fr); gap: 28px; }
+  .lp-footer-col h4 {
+    font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: #f1f0f5; margin-bottom: 14px;
+  }
+  .lp-footer-col a {
+    display: block; font-size: 12px; color: rgba(161,168,188,0.52);
+    margin-bottom: 8px; transition: color .2s;
+  }
+  .lp-footer-col a:hover { color: #6ee7b7; }
+  .lp-footer-bottom {
+    border-top: 1px solid rgba(255,255,255,0.05);
+    padding-top: 20px; font-size: 11px; color: rgba(161,168,188,0.28);
+    display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 1024px) {
+    .lp-steps-grid { grid-template-columns: repeat(2, 1fr); }
+    .lp-footer-cols { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 768px) {
+    .lp-nav { padding: 12px 16px; }
+    .lp-nav-links { display: none; }
+    .lp-hero { padding: 110px 16px 60px; }
+    .lp-hero h1 { font-size: clamp(30px, 8vw, 44px); }
+    .lp-hero-sub { font-size: 15px; }
+    .lp-demo-floating-badges { top: -30px; }
+    .lp-demo-badge-num { font-size: 16px; }
+    .lp-feature-grid { grid-template-columns: 1fr; }
+    .lp-steps-grid { grid-template-columns: 1fr; }
+    .lp-pricing-grid { grid-template-columns: 1fr; }
+    .lp-plan.lp-plan-featured { transform: scale(1); }
+    .lp-testi-grid { grid-template-columns: 1fr; }
+    .lp-section { padding: 64px 16px; }
+    .lp-cta-box { padding: 48px 20px; border-radius: 24px; }
+    .lp-footer-top { flex-direction: column; }
+    .lp-footer-cols { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (min-width: 769px) and (max-width: 1023px) {
+    .lp-feature-grid { grid-template-columns: repeat(2, 1fr); }
+    .lp-testi-grid { grid-template-columns: repeat(2, 1fr); }
+    .lp-pricing-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+`;
+
+if (!document.getElementById("lp-styles")) {
+  const el = document.createElement("style");
+  el.id = "lp-styles";
+  el.textContent = CSS;
+  document.head.appendChild(el);
+}
+
+// ─── Data (unchanged) ─────────────────────────────────────────────────────
 const chatDemoMessages = [
-  { from:"user", text:"My order hasn't arrived after 10 days.", delay:0 },
-  { from:"ai", text:"I'm looking into order #48291 now...", delay:1200 },
-  { from:"ai", text:"Found it. Your package was delayed at the sorting facility. A replacement has been shipped - tracking: UPS-3849201.", delay:2600 },
-  { from:"user", text:"That's great, thank you!", delay:4000 },
-  { from:"ai", text:"Resolved in 8 seconds. Anything else I can help with?", delay:5000 },
+  { from: "user", text: "My order hasn't arrived after 10 days.", delay: 0 },
+  { from: "ai",   text: "I'm looking into order #48291 now...", delay: 1200 },
+  { from: "ai",   text: "Found it. Your package was delayed at the sorting facility. A replacement has been shipped - tracking: UPS-3849201.", delay: 2600 },
+  { from: "user", text: "That's great, thank you!", delay: 4000 },
+  { from: "ai",   text: "Resolved in 8 seconds. Anything else I can help with?", delay: 5000 },
 ];
 
+const landingFeatures = [
+  { icon: "⚡", title: "Instant AI responses", desc: "GPT-4o understands customer intent in any language and replies in under a second day or night, no queue." },
+  { icon: "🧠", title: "Learns your knowledge base", desc: "Connect your docs, FAQs, and past tickets. SupportAI builds a semantic index and stays up-to-date automatically." },
+  { icon: "🔁", title: "Smart escalation", desc: "When a ticket needs a human, the AI hands off with a full summary so your team never starts from scratch." },
+  { icon: "📊", title: "Real-time analytics", desc: "Track CSAT, resolution rates, and deflection by category. Surface patterns before they become problems." },
+  { icon: "🔗", title: "Works with your stack", desc: "Native integrations with Intercom, Zendesk, HubSpot, Slack, and 40+ tools. REST API and webhooks included." },
+  { icon: "🔒", title: "Enterprise-grade security", desc: "SOC 2 Type II, GDPR-ready, SSO, and role-based permissions. Your data never trains our models." },
+];
+
+const steps = [
+  { title: "Plug in your knowledge base", desc: "Import from Notion, Confluence, Google Docs, or paste a URL. SupportAI indexes your content and stays in sync.", tag: "Setup · 5 min" },
+  { title: "Review and tune responses", desc: "Use our editor to approve, edit, or block responses. The AI learns your brand voice and escalation rules.", tag: "Customization" },
+  { title: "Go live on any channel", desc: "Add a widget to your site, connect your existing helpdesk, or use our API to embed SupportAI anywhere.", tag: "Launch · Same day" },
+  { title: "Watch CSAT climb", desc: "Analytics surface gaps in your docs and opportunities to automate more. Continuous improvement on autopilot.", tag: "Ongoing" },
+];
+
+const plans = [
+  { name: "Starter", price: "49",  desc: "For small teams just getting started.", features: ["500 AI resolutions/mo", "1 knowledge base", "Email & chat widget", "Basic analytics", "Community support"], cta: "Start free trial", highlight: false },
+  { name: "Growth",  price: "149", desc: "For growing teams that need more power.", features: ["5,000 AI resolutions/mo", "5 knowledge bases", "All channels + Slack", "Advanced analytics", "Smart escalation", "Priority support"], cta: "Start free trial", highlight: true, badge: "Most popular" },
+  { name: "Enterprise", price: "499", desc: "For large teams with advanced needs.", features: ["Unlimited AI resolutions", "Unlimited knowledge bases", "All integrations + API", "Custom AI personas", "SSO + SOC 2", "Dedicated CSM"], cta: "Talk to sales", highlight: false },
+];
+
+const testimonials = [
+  { quote: "SupportAI resolved 78% of our tickets in the first week. Our team finally has time to work on product.", name: "Mia Chen", role: "Head of Support · Loopify", color: "#e879a0" },
+  { quote: "Setup took 40 minutes. By end of day we had a live AI agent answering questions in English, Spanish, and French.", name: "James Okafor", role: "CTO · Stackbloom", color: "#6ee7b7" },
+  { quote: "We cut average resolution time from 4 hours to 12 seconds. CSAT went up 18 points in the first month.", name: "Sofia Martínez", role: "VP Operations · Courier", color: "#a78bfa" },
+];
+
+// ─── ChatBubbleDemo ────────────────────────────────────────────────────────
+// FIX: useEffect with [] so the loop doesn't restart on every render.
+// Uses a ref to schedule the next reset without adding visible to deps.
 function ChatBubbleDemo() {
   const [visible, setVisible] = useState(0);
+  const visibleRef = useRef(0);
+
   useEffect(() => {
-    const timers = chatDemoMessages.map((m,i) => setTimeout(()=>setVisible(v=>Math.max(v,i+1)), m.delay||i*900));
-    const reset = setTimeout(()=>setVisible(0), 8500);
-    return ()=>[...timers,reset].forEach(clearTimeout);
+    visibleRef.current = visible;
   }, [visible]);
+
+  useEffect(() => {
+    let timers = [];
+    let resetTimer = null;
+
+    function schedule() {
+      timers = chatDemoMessages.map((m, i) =>
+        setTimeout(() => setVisible(i + 1), m.delay ?? i * 900)
+      );
+      resetTimer = setTimeout(() => {
+        setVisible(0);
+        timers = [];
+        // restart after a short pause
+        resetTimer = setTimeout(schedule, 600);
+      }, 9200);
+    }
+
+    schedule();
+    return () => {
+      timers.forEach(clearTimeout);
+      clearTimeout(resetTimer);
+    };
+  }, []); // ← empty deps: runs once, self-resetting loop
+
+  const nextIsAi = visible < chatDemoMessages.length && chatDemoMessages[visible]?.from === "ai";
+
   return (
-    <div className="bg-white rounded-2xl shadow-2xl shadow-slate-200 border border-slate-100 p-5 w-full max-w-sm mx-auto space-y-3">
-      <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-        <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">SupportAI · Live</span>
+    <div className="lp-chat-widget">
+      <div className="lp-chat-header">
+        <span className="lp-pill-dot lp-pulse" />
+        SupportAI · Live
       </div>
-      {chatDemoMessages.slice(0,visible).map((m,i)=>(
-        <div key={i} className={`flex ${m.from==="user"?"justify-end":"justify-start"}`}>
-          <div className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${m.from==="user"?"bg-slate-100 text-slate-800 rounded-br-sm":"bg-gradient-to-br from-blue-500 to-violet-600 text-white rounded-bl-sm"}`}>{m.text}</div>
-        </div>
-      ))}
-      {visible<chatDemoMessages.length && visible>0 && chatDemoMessages[visible]?.from==="ai" && (
-        <div className="flex justify-start">
-          <div className="bg-gradient-to-br from-blue-500 to-violet-600 px-4 py-3 rounded-2xl rounded-bl-sm">
-            <div className="flex gap-1">{[0,1,2].map(i=><div key={i} className="w-1.5 h-1.5 bg-white/70 rounded-full animate-bounce" style={{animationDelay:`${i*150}ms`}} />)}</div>
+      <div className="lp-chat-messages">
+        {chatDemoMessages.slice(0, visible).map((m, i) => (
+          <div key={i} className={m.from === "user" ? "lp-chat-row-user" : "lp-chat-row-ai"}>
+            <div className={`lp-chat-msg ${m.from}`}>{m.text}</div>
           </div>
-        </div>
-      )}
-      <div className="pt-2 border-t border-slate-100">
-        <div className="bg-slate-50 rounded-xl px-4 py-2.5 text-sm text-slate-400">Type a message...</div>
+        ))}
+        {visible > 0 && nextIsAi && (
+          <div className="lp-chat-row-ai">
+            <div className="lp-chat-msg ai">
+              <div className="lp-typing">
+                {[0,1,2].map(i => (
+                  <span key={i} className="lp-bounce" style={{ animationDelay: `${i * 140}ms` }} />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+      <div className="lp-chat-input-mock">Type a message…</div>
     </div>
   );
 }
 
-const landingFeatures = [
-  { icon:"⚡", title:"Instant AI responses", desc:"GPT-4o understands customer intent in any language and replies in under a second day or night, no queue." },
-  { icon:"🧠", title:"Learns your knowledge base", desc:"Connect your docs, FAQs, and past tickets. SupportAI builds a semantic index and stays up-to-date automatically." },
-  { icon:"🔁", title:"Smart escalation", desc:"When a ticket needs a human, the AI hands off with a full summary so your team never starts from scratch." },
-  { icon:"📊", title:"Real-time analytics", desc:"Track CSAT, resolution rates, and deflection by category. Surface patterns before they become problems." },
-  { icon:"🔗", title:"Works with your stack", desc:"Native integrations with Intercom, Zendesk, HubSpot, Slack, and 40+ tools. REST API and webhooks included." },
-  { icon:"🔒", title:"Enterprise-grade security", desc:"SOC 2 Type II, GDPR-ready, SSO, and role-based permissions. Your data never trains our models." },
-];
-
-const steps = [
-  { title:"Plug in your knowledge base", desc:"Import from Notion, Confluence, Google Docs, or paste a URL. SupportAI indexes your content and stays in sync.", tag:"Setup· 5 min" },
-  { title:"Review and tune responses", desc:"Use our editor to approve, edit, or block responses. The AI learns your brand voice and escalation rules.", tag:"Customization" },
-  { title:"Go live on any channel", desc:"Add a widget to your site, connect your existing helpdesk, or use our API to embed SupportAI anywhere.", tag:"Launch· Same day" },
-  { title:"Watch CSAT climb", desc:"Analytics surface gaps in your docs and opportunities to automate more. Continuous improvement on autopilot.", tag:"Ongoing" },
-];
-
-const plans = [
-  { name:"Starter", price:"49", desc:"For small teams just getting started.", features:["500 AI resolutions/mo","1 knowledge base","Email & chat widget","Basic analytics","Community support"], cta:"Start free trial", highlight:false },
-  { name:"Growth", price:"149", desc:"For growing teams that need more power.", features:["5,000 AI resolutions/mo","5 knowledge bases","All channels + Slack","Advanced analytics","Smart escalation","Priority support"], cta:"Start free trial", highlight:true, badge:"Most popular" },
-  { name:"Enterprise", price:"499", desc:"For large teams with advanced needs.", features:["Unlimited AI resolutions","Unlimited knowledge bases","All integrations + API","Custom AI personas","SSO + SOC 2","Dedicated CSM"], cta:"Talk to sales", highlight:false },
-];
-
-const testimonials = [
-  { quote:"SupportAI resolved 78% of our tickets in the first week. Our team finally has time to work on product.", name:"Mia Chen", role:"Head of Support · Loopify", avatar:"MC", color:"from-pink-400 to-rose-500" },
-  { quote:"Setup took 40 minutes. By end of day we had a live AI agent answering questions in English, Spanish, and French.", name:"James Okafor", role:"CTO · Stackbloom", avatar:"JO", color:"from-emerald-400 to-teal-500" },
-  { quote:"We cut average resolution time from 4 hours to 12 seconds. CSAT went up 18 points in the first month.", name:"Sofia Martínez", role:"VP Operations · Courier", avatar:"SM", color:"from-violet-400 to-purple-600" },
-];
-
+// ─── LandingPage ──────────────────────────────────────────────────────────
 function LandingPage({ onSignIn, onSignUp }) {
   const [scrolled, setScrolled] = useState(false);
+
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
+    const handler = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handler, { passive: true });
+    return () => window.removeEventListener("scroll", handler);
   }, []);
+
   return (
-    <div className="font-sans antialiased">
-      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled?"bg-white/90 backdrop-blur-md shadow-sm border-b border-slate-100":"bg-transparent"}`}>
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center"><span className="text-white text-sm font-bold">S</span></div>
-            <span className="font-semibold text-slate-900 text-lg tracking-tight">SupportAI</span>
-          </div>
-          <div className="hidden md:flex items-center gap-8">
-            {["Features","How it Works","Pricing"].map(item=>(
-              <a key={item} href={`#${item.toLowerCase().replace(/ /g,"-")}`} className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium">{item}</a>
-            ))}
-          </div>
-          <div className="flex items-center gap-3">
-            <button onClick={onSignIn} className="hidden md:block text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors px-4 py-2 rounded-lg hover:bg-slate-100">Sign in</button>
-            <button onClick={onSignUp} className="text-sm font-semibold bg-gradient-to-r from-blue-500 to-violet-600 text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity shadow-md shadow-blue-200">Start free</button>
-          </div>
+    <div className="lp-root">
+
+      {/* ── Nav ── */}
+      <nav className={`lp-nav${scrolled ? " lp-nav-solid" : ""}`}>
+        <div className="lp-nav-logo">SupportAI</div>
+        <div className="lp-nav-links">
+          {["Features", "How it Works", "Pricing"].map(item => (
+            <a key={item} href={`#${item.toLowerCase().replace(/ /g, "-")}`}>{item}</a>
+          ))}
+          <a href="#">Resources</a>
+          <a href="#">Contact</a>
+        </div>
+        <div className="lp-nav-actions">
+          <button className="lp-btn-signin" onClick={onSignIn}>Sign in</button>
+          <button className="lp-btn-cta" onClick={onSignUp}>Get Started</button>
         </div>
       </nav>
-      <section className="min-h-screen bg-linear-to-b from-slate-50 via-blue-50/30 to-white pt-32 pb-24 px-6 relative overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-blue-100/60 to-transparent rounded-full blur-3xl pointer-events-none" />
-        <div className="max-w-6xl mx-auto relative">
-          <div className="flex flex-col lg:flex-row items-center gap-16">
-            <div className="flex-1 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 bg-white border border-blue-100 text-blue-600 text-xs font-semibold px-4 py-2 rounded-full shadow-sm mb-6">
-                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />Now with GPT-v4.1
+
+      {/* ── Hero ── */}
+      <section className="lp-hero">
+        <div className="lp-hero-radial" />
+        <div className="lp-hero-inner">
+
+          <div className="lp-pill">
+            <span className="lp-pill-dot lp-pulse" />
+            Now with GPT-v4.1
+          </div>
+
+          <h1>
+            Experience the Future<br />of Productivity.
+          </h1>
+
+          <p className="lp-hero-sub">
+            SupportAI resolves 80% of tickets instantly without a human.
+            Plug in your knowledge base, go live in minutes.
+          </p>
+
+          <div className="lp-hero-btns">
+            <button className="lp-btn-hero-primary" onClick={onSignUp}>Start for free</button>
+            <button className="lp-btn-hero-ghost">
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>play_circle</span>
+              Watch demo
+            </button>
+          </div>
+
+          <p className="lp-hero-note">No credit card required · 14-day free trial · Cancel anytime</p>
+
+          {/* Hero demo */}
+          <div className="lp-demo-outer">
+            <div className="lp-demo-floating-badges">
+              <div className="lp-demo-badge lp-emerald-badge lp-glass">
+                <span className="lp-demo-badge-num">80%</span>
+                <span className="lp-demo-badge-lbl">Auto-<br />resolved</span>
               </div>
-              <h1 className="text-5xl lg:text-6xl font-extrabold text-slate-900 leading-[1.08] tracking-tight mb-6">
-                Experience the<br />future{" "}<span className="bg-linear-to-r from-blue-500 to-violet-600 bg-clip-text text-transparent">of Productivity.</span>
-              </h1>
-              <p className="text-lg text-slate-500 leading-relaxed mb-10 max-w-lg mx-auto lg:mx-0">SupportAI resolves 80% of tickets instantly without a human. Plug in your knowledge base, go live in minutes.</p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-                <button onClick={onSignUp} className="bg-gradient-to-r from-blue-500 to-violet-600 text-white font-semibold px-8 py-3.5 rounded-xl shadow-lg shadow-blue-200/60 hover:opacity-90 transition-all text-sm">Start for free</button>
-                <button className="bg-white border border-slate-200 text-slate-700 font-semibold px-8 py-3.5 rounded-xl hover:border-slate-300 hover:bg-slate-50 transition-all text-sm shadow-sm">Watch demo</button>
+              <div className="lp-demo-badge lp-emerald-badge lp-glass">
+                <span className="lp-demo-badge-num">8s</span>
+                <span className="lp-demo-badge-lbl">Avg<br />resolution</span>
               </div>
-              <p className="mt-5 text-xs text-slate-400 font-medium">No credit card required · 14-day free trial · Cancel anytime</p>
             </div>
-            <div className="flex-1 flex justify-center lg:justify-end w-full">
-              <div className="relative w-full max-w-sm">
-                <div className="absolute -inset-4 bg-gradient-to-br from-blue-100 to-violet-100 rounded-3xl blur-2xl opacity-60" />
-                <div className="relative">
-                  <ChatBubbleDemo />
-                  <div className="absolute -top-4 -right-6 bg-white rounded-2xl shadow-lg shadow-slate-200 border border-slate-100 px-4 py-3 text-center">
-                    <div className="text-2xl font-extrabold text-slate-900 leading-none">80%</div>
-                    <div className="text-xs text-slate-500 font-medium mt-0.5">Auto-resolved</div>
+
+            <div className="lp-glass lp-demo-card lp-glow-lg">
+              <div className="lp-demo-screen">
+                <div className="lp-demo-overlay">
+                  <div className="lp-demo-bubble user">
+                    My order hasn't arrived. Can you help me track it?
                   </div>
-                  <div className="absolute -bottom-4 -left-6 bg-white rounded-2xl shadow-lg shadow-slate-200 border border-slate-100 px-4 py-3 text-center">
-                    <div className="text-2xl font-extrabold text-slate-900 leading-none">8s</div>
-                    <div className="text-xs text-slate-500 font-medium mt-0.5">Avg resolution</div>
+                  <div className="lp-demo-bubble ai">
+                    <div className="lp-demo-ai-tag">
+                      <span className="material-symbols-outlined" style={{ fontSize: 13, color: "#6ee7b7" }}>bolt</span>
+                      SupportAI
+                    </div>
+                    I'm looking into order #48291. It's at the regional distribution center and scheduled for delivery tomorrow by 5 PM.
                   </div>
                 </div>
               </div>
@@ -131,125 +613,153 @@ function LandingPage({ onSignIn, onSignUp }) {
           </div>
         </div>
       </section>
-      <section id="features" className="py-28 px-6 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">Features</span>
-            <h2 className="text-4xl font-extrabold text-slate-900 mt-3 tracking-tight">Everything your support team needs</h2>
+
+      {/* ── Features ── */}
+      <section id="features" className="lp-section">
+        <div className="lp-inner">
+          <div className="lp-section-head">
+            <div className="lp-eyebrow">Features</div>
+            <h2 className="lp-section-title lp-serif">Engineered for Excellence</h2>
+            <p className="lp-section-sub">Powerful capabilities to automate your customer experience.</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {landingFeatures.map((f,i)=>(
-              <div key={i} className="group bg-white border border-slate-100 rounded-2xl p-7 hover:border-blue-100 hover:shadow-lg hover:shadow-blue-50 transition-all duration-200">
-                <div className="w-11 h-11 bg-gradient-to-br from-blue-50 to-violet-50 rounded-xl flex items-center justify-center text-xl mb-5 group-hover:scale-110 transition-transform">{f.icon}</div>
-                <h3 className="font-bold text-slate-900 text-base mb-2">{f.title}</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">{f.desc}</p>
+          <div className="lp-feature-grid">
+            {landingFeatures.map((f, i) => (
+              <div key={i} className="lp-feature-card lp-glass">
+                <div className="lp-feature-icon">{f.icon}</div>
+                <h3>{f.title}</h3>
+                <p>{f.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
-      <section id="how-it-works" className="py-28 px-6 bg-slate-50">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <span className="text-xs font-bold text-violet-600 uppercase tracking-widest">How it works</span>
-            <h2 className="text-4xl font-extrabold text-slate-900 mt-3 tracking-tight">From zero to live in a day</h2>
+
+      {/* ── How it Works ── */}
+      <section id="how-it-works" className="lp-section lp-bg-alt">
+        <div className="lp-inner">
+          <div className="lp-section-head">
+            <div className="lp-eyebrow">How it Works</div>
+            <h2 className="lp-section-title lp-serif">From zero to live in a day</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {steps.map((step,i)=>(
-              <div key={i} className="bg-white border border-slate-100 rounded-2xl p-7 shadow-sm">
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center text-white text-sm font-bold shadow-md shadow-blue-200">{i+1}</div>
-                  <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">{step.tag}</span>
-                </div>
-                <h3 className="font-bold text-slate-900 text-base mb-2">{step.title}</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">{step.desc}</p>
+          <div className="lp-steps-grid">
+            {steps.map((step, i) => (
+              <div key={i} className="lp-step-card lp-glass">
+                <div className="lp-step-num">{i + 1}</div>
+                <div className="lp-step-tag">{step.tag}</div>
+                <h4>{step.title}</h4>
+                <p>{step.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
-      <section id="pricing" className="py-28 px-6 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">Pricing</span>
-            <h2 className="text-4xl font-extrabold text-slate-900 mt-3 tracking-tight">Simple, transparent pricing</h2>
+
+      {/* ── Pricing ── */}
+      <section id="pricing" className="lp-section">
+        <div className="lp-inner">
+          <div className="lp-section-head">
+            <div className="lp-eyebrow">Pricing</div>
+            <h2 className="lp-section-title lp-serif">Tailored for your Growth</h2>
+            <p className="lp-section-sub">Transparent pricing for support teams of all sizes.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-            {plans.map((plan,i)=>(
-              <div key={i} className={`relative rounded-2xl p-8 flex flex-col ${plan.highlight?"bg-gradient-to-b from-blue-600 to-violet-700 text-white shadow-2xl shadow-blue-300/40 scale-[1.03]":"bg-white border border-slate-100 shadow-sm"}`}>
-                {plan.badge && <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-white text-blue-600 text-xs font-bold px-4 py-1.5 rounded-full shadow-md border border-blue-100">{plan.badge}</div>}
-                <h3 className={`font-bold text-lg mb-1.5 ${plan.highlight?"text-white/90":"text-slate-900"}`}>{plan.name}</h3>
-                <p className={`text-sm mb-6 ${plan.highlight?"text-blue-100":"text-slate-500"}`}>{plan.desc}</p>
-                <div className="flex items-end gap-1 mb-8">
-                  <span className={`text-4xl font-extrabold ${plan.highlight?"text-white":"text-slate-900"}`}>${plan.price}</span>
-                  <span className={`text-sm mb-1.5 ${plan.highlight?"text-blue-200":"text-slate-400"}`}>/ mo</span>
+          <div className="lp-pricing-grid">
+            {plans.map((plan, i) => (
+              <div key={i} className={`lp-plan lp-glass${plan.highlight ? " lp-plan-featured" : ""}`}>
+                {plan.badge && <div className="lp-plan-badge">{plan.badge}</div>}
+                <div className={`lp-plan-name ${plan.highlight ? "accent" : "muted"}`}>{plan.name}</div>
+                <div className="lp-plan-desc">{plan.desc}</div>
+                <div className="lp-plan-price">
+                  ${plan.price}<span className="lp-plan-price-per"> /mo</span>
                 </div>
-                <ul className="space-y-3 flex-1 mb-8">
-                  {plan.features.map((f,j)=>(
-                    <li key={j} className="flex items-start gap-2.5 text-sm">
-                      <svg className={`w-4 h-4 mt-0.5 shrink-0 ${plan.highlight?"text-blue-200":"text-blue-500"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                      <span className={plan.highlight?"text-blue-50":"text-slate-600"}>{f}</span>
+                <ul className="lp-plan-features">
+                  {plan.features.map((f, j) => (
+                    <li key={j} className={plan.highlight ? "bright" : ""}>
+                      <span className="lp-check">✓</span>{f}
                     </li>
                   ))}
                 </ul>
-                <button onClick={onSignUp} className={`w-full py-3.5 rounded-xl font-semibold text-sm transition-all ${plan.highlight?"bg-white text-violet-700 hover:bg-blue-50":"bg-gradient-to-r from-blue-500 to-violet-600 text-white hover:opacity-90 shadow-md"}`}>{plan.cta}</button>
+                <button
+                  className={`lp-plan-btn ${plan.highlight ? "solid" : "outline"}`}
+                  onClick={onSignUp}
+                >
+                  {plan.cta}
+                </button>
               </div>
             ))}
           </div>
         </div>
       </section>
-      <section className="py-28 px-6 bg-slate-50">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <span className="text-xs font-bold text-violet-600 uppercase tracking-widest">Testimonials</span>
-            <h2 className="text-4xl font-extrabold text-slate-900 mt-3 tracking-tight">Teams love SupportAI</h2>
+
+      {/* ── Testimonials ── */}
+      <section className="lp-section lp-bg-alt">
+        <div className="lp-inner">
+          <div className="lp-section-head">
+            <div className="lp-eyebrow">Testimonials</div>
+            <h2 className="lp-section-title lp-serif">Teams love SupportAI</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonials.map((t,i)=>(
-              <div key={i} className="bg-white border border-slate-100 rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex gap-1 mb-5">{[...Array(5)].map((_,j)=><svg key={j} className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>)}</div>
-                <blockquote className="text-slate-700 text-sm leading-relaxed mb-6">"{t.quote}"</blockquote>
-                <div className="flex items-center gap-3 pt-5 border-t border-slate-100">
-                  <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${t.color} flex items-center justify-center text-white text-xs font-bold shrink-0`}>{t.avatar}</div>
-                  <div><div className="font-semibold text-slate-900 text-sm">{t.name}</div><div className="text-xs text-slate-500">{t.role}</div></div>
+          <div className="lp-testi-grid">
+            {testimonials.map((t, i) => (
+              <div key={i} className="lp-testi-card lp-glass">
+                <div className="lp-testi-stars">
+                  {[...Array(5)].map((_, j) => (
+                    <span key={j} style={{ color: "#f59e0b", fontSize: 13 }}>★</span>
+                  ))}
+                </div>
+                <blockquote>"{t.quote}"</blockquote>
+                <div className="lp-testi-author">
+                  <div className="lp-testi-avatar"
+                       style={{ background: `radial-gradient(circle at 30% 30%, ${t.color}, #0a0a0a)` }} />
+                  <div>
+                    <div className="lp-testi-name">{t.name}</div>
+                    <div className="lp-testi-role">{t.role}</div>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         </div>
       </section>
-      <section className="py-24 px-6 bg-gradient-to-br from-blue-600 via-blue-700 to-violet-700">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-4xl font-extrabold text-white leading-tight tracking-tight mb-5">Ready to transform your support?</h2>
-          <p className="text-blue-200 text-lg mb-10 leading-relaxed">Start your free 14-day trial. No credit card, no commitment.</p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button onClick={onSignUp} className="bg-white text-violet-700 font-bold px-9 py-4 rounded-xl hover:bg-blue-50 transition-colors shadow-2xl text-sm">Start for free</button>
-            <button className="border border-white/30 text-white font-semibold px-9 py-4 rounded-xl hover:bg-white/10 transition-colors text-sm">Talk to sales</button>
+
+      {/* ── CTA ── */}
+      <section className="lp-cta-section">
+        <div className="lp-cta-glow" />
+        <div className="lp-cta-box lp-glass">
+          <h2 className="lp-serif">Ready to transform your support?</h2>
+          <p>Join 1,500+ teams delivering world-class customer experiences with SupportAI.</p>
+          <div className="lp-cta-btns">
+            <button className="lp-btn-hero-primary" onClick={onSignUp}>Start for free</button>
+            <button className="lp-btn-hero-ghost">Talk to sales</button>
           </div>
         </div>
       </section>
-      <footer className="bg-slate-900 text-slate-400 pt-16 pb-10 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-start gap-10 mb-12">
-            <div className="max-w-xs">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center"><span className="text-white text-sm font-bold">S</span></div>
-                <span className="font-semibold text-white text-lg">SupportAI</span>
-              </div>
-              <p className="text-sm text-slate-500 leading-relaxed">AI-powered customer support for modern businesses.</p>
+
+      {/* ── Footer ── */}
+      <footer className="lp-footer">
+        <div className="lp-footer-inner">
+          <div className="lp-footer-top">
+            <div className="lp-footer-brand">
+              <div className="lp-footer-logo">SupportAI</div>
+              <p className="lp-footer-desc">
+                Precision in every interaction. Empowering support teams with intelligent automation.
+              </p>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
-              {Object.entries({Product:["Features","Integrations","Changelog","Status"],Resources:["Docs","Blog","Guides","Community"],Company:["About","Careers","Press","Contact"],Legal:["Privacy","Terms","Security","GDPR"]}).map(([s,links])=>(
-                <div key={s}>
-                  <h4 className="text-white text-sm font-semibold mb-4">{s}</h4>
-                  <ul className="space-y-2.5">{links.map(l=><li key={l}><a href="#" className="text-sm text-slate-500 hover:text-slate-300 transition-colors">{l}</a></li>)}</ul>
+            <div className="lp-footer-cols">
+              {Object.entries({
+                Product:   ["Features", "Integrations", "Changelog", "Status"],
+                Resources: ["Docs", "Blog", "Guides", "Community"],
+                Company:   ["About", "Careers", "Press", "Contact"],
+                Legal:     ["Privacy", "Terms", "Security", "GDPR"],
+              }).map(([section, links]) => (
+                <div key={section} className="lp-footer-col">
+                  <h4>{section}</h4>
+                  {links.map(l => <a key={l} href="#">{l}</a>)}
                 </div>
               ))}
             </div>
           </div>
-          <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-xs text-slate-600">© 2026 SupportAI, Inc. All rights reserved.</p>
-            <p className="text-xs text-slate-600">Made with love for support teams everywhere</p>
+          <div className="lp-footer-bottom">
+            <span>© 2026 SupportAI. All rights reserved.</span>
+            <span>Made with love for support teams everywhere</span>
           </div>
         </div>
       </footer>
@@ -257,6 +767,7 @@ function LandingPage({ onSignIn, onSignUp }) {
   );
 }
 
+// ─── Default export (routing unchanged) ───────────────────────────────────
 export default function Landpage() {
   const navigate = useNavigate();
   return (

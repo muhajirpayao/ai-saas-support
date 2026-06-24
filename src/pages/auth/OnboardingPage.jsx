@@ -94,9 +94,9 @@ function StepOrg({ data, setData, onNext }) {
         <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Set up your organization</h2>
         <p className="text-sm text-slate-500 mt-1.5">Tell us about your company to personalize SupportAI.</p>
       </div>
-
+           {/* lmk if you want to add a logo here */}
       <div className="space-y-5">
-        {/* Company name */}
+        {/* Company name */} 
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">Company name</label>
           <div className="relative">
