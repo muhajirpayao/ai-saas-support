@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import ChatHeader from "./ChatHeader";
-import MessageList from "./MessageList";
-import MessageInput from "./MessageInput";
+import MessageList from "./Messagelist";
+import MessageInput from "./Messageinput";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 
 /**
