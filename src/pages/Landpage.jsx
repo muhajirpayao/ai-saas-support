@@ -19,7 +19,7 @@ function ChatBubbleDemo() {
     <div className="bg-white rounded-2xl shadow-2xl shadow-slate-200 border border-slate-100 p-5 w-full max-w-sm mx-auto space-y-3">
       <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
         <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">SupportAI Â· Live</span>
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">SupportAI · Live</span>
       </div>
       {chatDemoMessages.slice(0,visible).map((m,i)=>(
         <div key={i} className={`flex ${m.from==="user"?"justify-end":"justify-start"}`}>
@@ -34,25 +34,25 @@ function ChatBubbleDemo() {
         </div>
       )}
       <div className="pt-2 border-t border-slate-100">
-        <div className="bg-slate-50 rounded-xl px-4 py-2.5 text-sm text-slate-400">Type a messageâ€¦</div>
+        <div className="bg-slate-50 rounded-xl px-4 py-2.5 text-sm text-slate-400">Type a message...</div>
       </div>
     </div>
   );
 }
 
 const landingFeatures = [
-  { icon:"âš¡", title:"Instant AI responses", desc:"GPT-4o understands customer intent in any language and replies in under a second â€” day or night, no queue." },
-  { icon:"ðŸ§ ", title:"Learns your knowledge base", desc:"Connect your docs, FAQs, and past tickets. SupportAI builds a semantic index and stays up-to-date automatically." },
-  { icon:"ðŸ”", title:"Smart escalation", desc:"When a ticket needs a human, the AI hands off with a full summary so your team never starts from scratch." },
-  { icon:"ðŸ“Š", title:"Real-time analytics", desc:"Track CSAT, resolution rates, and deflection by category. Surface patterns before they become problems." },
-  { icon:"ðŸ”Œ", title:"Works with your stack", desc:"Native integrations with Intercom, Zendesk, HubSpot, Slack, and 40+ tools. REST API and webhooks included." },
-  { icon:"ðŸ”’", title:"Enterprise-grade security", desc:"SOC 2 Type II, GDPR-ready, SSO, and role-based permissions. Your data never trains our models." },
+  { icon:"⚡", title:"Instant AI responses", desc:"GPT-4o understands customer intent in any language and replies in under a second day or night, no queue." },
+  { icon:"🧠", title:"Learns your knowledge base", desc:"Connect your docs, FAQs, and past tickets. SupportAI builds a semantic index and stays up-to-date automatically." },
+  { icon:"🔁", title:"Smart escalation", desc:"When a ticket needs a human, the AI hands off with a full summary so your team never starts from scratch." },
+  { icon:"📊", title:"Real-time analytics", desc:"Track CSAT, resolution rates, and deflection by category. Surface patterns before they become problems." },
+  { icon:"🔗", title:"Works with your stack", desc:"Native integrations with Intercom, Zendesk, HubSpot, Slack, and 40+ tools. REST API and webhooks included." },
+  { icon:"🔒", title:"Enterprise-grade security", desc:"SOC 2 Type II, GDPR-ready, SSO, and role-based permissions. Your data never trains our models." },
 ];
 
 const steps = [
-  { title:"Plug in your knowledge base", desc:"Import from Notion, Confluence, Google Docs, or paste a URL. SupportAI indexes your content and stays in sync.", tag:"Setup Â· 5 min" },
+  { title:"Plug in your knowledge base", desc:"Import from Notion, Confluence, Google Docs, or paste a URL. SupportAI indexes your content and stays in sync.", tag:"Setup· 5 min" },
   { title:"Review and tune responses", desc:"Use our editor to approve, edit, or block responses. The AI learns your brand voice and escalation rules.", tag:"Customization" },
-  { title:"Go live on any channel", desc:"Add a widget to your site, connect your existing helpdesk, or use our API to embed SupportAI anywhere.", tag:"Launch Â· Same day" },
+  { title:"Go live on any channel", desc:"Add a widget to your site, connect your existing helpdesk, or use our API to embed SupportAI anywhere.", tag:"Launch· Same day" },
   { title:"Watch CSAT climb", desc:"Analytics surface gaps in your docs and opportunities to automate more. Continuous improvement on autopilot.", tag:"Ongoing" },
 ];
 
@@ -63,9 +63,9 @@ const plans = [
 ];
 
 const testimonials = [
-  { quote:"SupportAI resolved 78% of our tickets in the first week. Our team finally has time to work on product.", name:"Mia Chen", role:"Head of Support Â· Loopify", avatar:"MC", color:"from-pink-400 to-rose-500" },
-  { quote:"Setup took 40 minutes. By end of day we had a live AI agent answering questions in English, Spanish, and French.", name:"James Okafor", role:"CTO Â· Stackbloom", avatar:"JO", color:"from-emerald-400 to-teal-500" },
-  { quote:"We cut average resolution time from 4 hours to 12 seconds. CSAT went up 18 points in the first month.", name:"Sofia MartÃ­nez", role:"VP Operations Â· Courier", avatar:"SM", color:"from-violet-400 to-purple-600" },
+  { quote:"SupportAI resolved 78% of our tickets in the first week. Our team finally has time to work on product.", name:"Mia Chen", role:"Head of Support · Loopify", avatar:"MC", color:"from-pink-400 to-rose-500" },
+  { quote:"Setup took 40 minutes. By end of day we had a live AI agent answering questions in English, Spanish, and French.", name:"James Okafor", role:"CTO · Stackbloom", avatar:"JO", color:"from-emerald-400 to-teal-500" },
+  { quote:"We cut average resolution time from 4 hours to 12 seconds. CSAT went up 18 points in the first month.", name:"Sofia Martínez", role:"VP Operations · Courier", avatar:"SM", color:"from-violet-400 to-purple-600" },
 ];
 
 function LandingPage({ onSignIn, onSignUp }) {
@@ -103,14 +103,14 @@ function LandingPage({ onSignIn, onSignUp }) {
                 <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />Now with GPT-v4.1
               </div>
               <h1 className="text-5xl lg:text-6xl font-extrabold text-slate-900 leading-[1.08] tracking-tight mb-6">
-                Customer support<br />that{" "}<span className="bg-linear-to-r from-blue-500 to-violet-600 bg-clip-text text-transparent">never sleeps.</span>
+                Experience the<br />future{" "}<span className="bg-linear-to-r from-blue-500 to-violet-600 bg-clip-text text-transparent">of Productivity.</span>
               </h1>
-              <p className="text-lg text-slate-500 leading-relaxed mb-10 max-w-lg mx-auto lg:mx-0">SupportAI resolves 80% of tickets instantly â€” without a human. Plug in your knowledge base, go live in minutes.</p>
+              <p className="text-lg text-slate-500 leading-relaxed mb-10 max-w-lg mx-auto lg:mx-0">SupportAI resolves 80% of tickets instantly without a human. Plug in your knowledge base, go live in minutes.</p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
                 <button onClick={onSignUp} className="bg-gradient-to-r from-blue-500 to-violet-600 text-white font-semibold px-8 py-3.5 rounded-xl shadow-lg shadow-blue-200/60 hover:opacity-90 transition-all text-sm">Start for free</button>
                 <button className="bg-white border border-slate-200 text-slate-700 font-semibold px-8 py-3.5 rounded-xl hover:border-slate-300 hover:bg-slate-50 transition-all text-sm shadow-sm">Watch demo</button>
               </div>
-              <p className="mt-5 text-xs text-slate-400 font-medium">No credit card required Â· 14-day free trial Â· Cancel anytime</p>
+              <p className="mt-5 text-xs text-slate-400 font-medium">No credit card required · 14-day free trial · Cancel anytime</p>
             </div>
             <div className="flex-1 flex justify-center lg:justify-end w-full">
               <div className="relative w-full max-w-sm">
