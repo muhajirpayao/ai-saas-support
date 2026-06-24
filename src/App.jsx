@@ -2,7 +2,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "@/routes/ProtectedRoute";
 import Landpage from "@/pages/Landpage";
-import Dashboard from "@/pages/Dashboard";
+import Dashboard from "@/pages/dashboard/DashboardHome";
 import LoginPage from "@/pages/auth/LoginPage";
 import SignupPage from "@/pages/auth/SignupPage";
 import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
