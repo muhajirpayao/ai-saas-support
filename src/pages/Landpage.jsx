@@ -248,8 +248,8 @@ function LandingPage({ onSignIn, onSignUp }) {
             </div>
           </div>
           <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-xs text-slate-600">Â© 2026 SupportAI, Inc. All rights reserved.</p>
-            <p className="text-xs text-slate-600">Made with â™¥ for support teams everywhere</p>
+            <p className="text-xs text-slate-600">© 2026 SupportAI, Inc. All rights reserved.</p>
+            <p className="text-xs text-slate-600">Made with love for support teams everywhere</p>
           </div>
         </div>
       </footer>
