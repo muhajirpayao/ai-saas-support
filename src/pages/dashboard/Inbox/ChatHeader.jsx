@@ -1,8 +1,8 @@
 /**
- * ChatHeader
- * Top bar of the chat window.
+ * ChatHeader — restyled to match Dashboard's obsidian + emerald theme.
  *
  * Props:
+ *   t                : theme token object
  *   conversation     : Conversation
  *   onBack?          : () => void   (mobile)
  *   onOpenDetails    : () => void
@@ -10,37 +10,35 @@
  *   isMobile         : boolean
  */
 export default function ChatHeader({
+    t,
     conversation,
     onBack,
     onOpenDetails,
     showDetailsPanel,
     isMobile = false,
   }) {
+    const isDark = t?.bg === "#0a0a0a" || t?.sidebar?.includes("20,21,24");
     const { contact_name, contact_email, status, channel = "email" } = conversation;
   
     const statusLabel = { open: "Open", pending: "Pending", closed: "Closed" };
-    const statusColor = {
-      open:    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-      pending: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-      closed:  "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
-    };
+    const statusStyle = t.statusOpen
+      ? { open: t.statusOpen, pending: t.statusWaiting, closed: t.statusResolved }
+      : null;
   
     const channelIcon = {
-      email: (
-        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-      ),
-      chat: (
-        <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-      ),
+      email: <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />,
+      chat: <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />,
     };
   
+    const badgeColors = statusStyle?.[status] || { bg: "rgba(16,185,129,0.12)", text: "#6ee7b7" };
+  
     return (
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 shrink-0">
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: `1px solid ${t.border}`, background: t.surface, flexShrink: 0, backdropFilter: isDark ? "blur(12px)" : "none", WebkitBackdropFilter: isDark ? "blur(12px)" : "none" }}>
         {/* Back button (mobile) */}
         {isMobile && onBack && (
           <button
             onClick={onBack}
-            className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            style={{ padding: 6, borderRadius: 10, color: t.textSub, background: "none", border: "none", cursor: "pointer", display: "flex" }}
           >
             <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -49,24 +47,24 @@ export default function ChatHeader({
         )}
   
         {/* Channel icon */}
-        <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center shrink-0">
-          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} className="text-indigo-500">
+        <div style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(16,185,129,0.12)", border: isDark ? "1px solid rgba(110,231,183,0.2)" : "none", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} style={{ color: "#6ee7b7" }}>
             {channelIcon[channel] || channelIcon.email}
           </svg>
         </div>
   
         {/* Contact info */}
-        <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-semibold text-gray-900 dark:text-white truncate">
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0 }}>
             {contact_name || contact_email || "Unknown"}
           </p>
           {contact_name && contact_email && (
-            <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{contact_email}</p>
+            <p style={{ fontSize: 11, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0 }}>{contact_email}</p>
           )}
         </div>
   
         {/* Status badge */}
-        <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0 ${statusColor[status] || statusColor.open}`}>
+        <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 99, flexShrink: 0, background: badgeColors.bg, color: badgeColors.text }}>
           {statusLabel[status] || "Open"}
         </span>
   
@@ -74,11 +72,13 @@ export default function ChatHeader({
         <button
           onClick={onOpenDetails}
           title="Customer details"
-          className={`p-1.5 rounded-lg transition-colors ${
-            showDetailsPanel
-              ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400"
-              : "text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300"
-          }`}
+          style={{
+            padding: 7, borderRadius: 10, border: "none", cursor: "pointer", display: "flex", transition: "background 0.2s",
+            background: showDetailsPanel ? "rgba(16,185,129,0.15)" : "transparent",
+            color: showDetailsPanel ? "#6ee7b7" : t.textMuted,
+          }}
+          onMouseEnter={(e) => { if (!showDetailsPanel) e.currentTarget.style.background = t.cardHover; }}
+          onMouseLeave={(e) => { if (!showDetailsPanel) e.currentTarget.style.background = "transparent"; }}
         >
           <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />

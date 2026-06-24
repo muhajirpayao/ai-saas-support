@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useProfile } from "@/hooks/useProfile";
-// import InboxPage from "./Inbox/InboxPage";
+import InboxPage from "./Inbox/InboxPage";
 // ─── THEME TOKENS ─────────────────────────────────────────────────────────────
 // Light: clean slate
 // Dark: obsidian + emerald (matches Landpage / SignupPage)

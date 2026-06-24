@@ -5,14 +5,10 @@ import MessageInput from "./MessageInput";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 
 /**
- * ChatWindow
- *
- * Center panel of the Inbox. Renders the full conversation:
- *   - ChatHeader      : meta, assign, status actions
- *   - MessageList     : scrollable message thread
- *   - MessageInput    : composer with attachments and emoji
+ * ChatWindow — restyled to match Dashboard's obsidian + emerald theme.
  *
  * Props:
+ *   t                 : theme token object
  *   conversation      : Conversation | undefined
  *   messages          : Message[]
  *   isLoading         : boolean
@@ -24,6 +20,7 @@ import LoadingSpinner from "@/components/shared/LoadingSpinner";
  *   isMobile?         : boolean
  */
 export default function ChatWindow({
+  t,
   conversation,
   messages = [],
   isLoading,
@@ -35,29 +32,25 @@ export default function ChatWindow({
   isMobile = false,
 }) {
   const bottomRef = useRef(null);
-  const [typingUsers, setTypingUsers] = useState([]); // realtime typing
+  const [typingUsers, setTypingUsers] = useState([]);
 
-  // Auto-scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
-  // Subscribe to typing broadcast (Supabase Realtime Channel)
-  // Handled by useRealtimeInbox; receives typing users via context/prop
-  // For now typing state is managed locally and passed from parent
-
   if (!conversation) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <LoadingSpinner size="md" />
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <LoadingSpinner size="md" t={t} />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       {/* ── Header ── */}
       <ChatHeader
+        t={t}
         conversation={conversation}
         onBack={onBack}
         onOpenDetails={onOpenDetails}
@@ -66,13 +59,14 @@ export default function ChatWindow({
       />
 
       {/* ── Messages ── */}
-      <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-4 bg-gray-50 dark:bg-gray-950">
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px", background: t.bg }}>
         {isLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <LoadingSpinner size="md" />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+            <LoadingSpinner size="md" t={t} />
           </div>
         ) : (
           <MessageList
+            t={t}
             messages={messages}
             conversation={conversation}
             typingUsers={typingUsers}
@@ -84,6 +78,7 @@ export default function ChatWindow({
       {/* ── Composer ── */}
       {conversation.status !== "closed" && (
         <MessageInput
+          t={t}
           conversationId={conversation.id}
           onSend={onSendMessage}
           isSending={isSending}
@@ -93,13 +88,13 @@ export default function ChatWindow({
 
       {/* Closed conversation notice */}
       {conversation.status === "closed" && (
-        <div className="px-6 py-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
-          <p className="text-[13px] text-gray-500 dark:text-gray-400">
+        <div style={{ padding: "12px 24px", background: t.surfaceAlt, borderTop: `1px solid ${t.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <p style={{ fontSize: 13, color: t.textSub, margin: 0 }}>
             This conversation is closed.
           </p>
           <button
             onClick={() => {/* reopen conversation handler */}}
-            className="text-[13px] font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+            style={{ fontSize: 13, fontWeight: 600, color: "#6ee7b7", background: "none", border: "none", cursor: "pointer" }}
           >
             Reopen
           </button>

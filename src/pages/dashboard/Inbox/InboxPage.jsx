@@ -11,12 +11,18 @@ import EmptyState from "@/components/shared/EmptyState";
 
 /**
  * InboxPage — 3-column SaaS inbox layout
+ * Restyled to match Dashboard.jsx's obsidian + emerald theme system.
+ *
+ * Props:
+ *   t : theme token object (T.dark | T.light) — passed down from Dashboard
  *
  * Desktop : [ConversationList 300px | ChatWindow flex | CustomerDetailsPanel 280px]
  * Tablet  : [ConversationList | ChatWindow] — details as overlay
  * Mobile  : single-panel stack (list → chat → details)
  */
-export default function InboxPage() {
+export default function InboxPage({ t }) {
+  const isDark = t?.bg === "#0a0a0a" || t?.sidebar?.includes("20,21,24");
+
   // ─── Responsive ───────────────────────────────────────────────────────────
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   useEffect(() => {
@@ -72,9 +78,10 @@ export default function InboxPage() {
   // ─── Mobile: single-panel ─────────────────────────────────────────────────
   if (isMobile) {
     return (
-      <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", background: "#fff" }}>
+      <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", background: t.bg }}>
         {mobileView === "list" && (
           <ConversationList
+            t={t}
             conversations={conversations}
             activeId={activeConversationId}
             isLoading={convLoading}
@@ -88,6 +95,7 @@ export default function InboxPage() {
         )}
         {mobileView === "chat" && (
           <ChatWindow
+            t={t}
             conversation={activeConversation}
             messages={messages}
             isLoading={msgsLoading}
@@ -100,6 +108,7 @@ export default function InboxPage() {
         )}
         {mobileView === "details" && (
           <CustomerDetailsPanel
+            t={t}
             conversation={activeConversation}
             onBack={() => setMobileView("chat")}
             isMobile
@@ -111,7 +120,15 @@ export default function InboxPage() {
 
   // ─── Desktop / Tablet: multi-column ──────────────────────────────────────
   return (
-    <div style={{ height: "100%", display: "flex", overflow: "hidden", background: "#f8fafc" }}>
+    <div style={{ height: "100%", display: "flex", overflow: "hidden", background: t.bg, position: "relative" }}>
+
+      {/* Ambient glow (dark only) — matches Dashboard's background treatment */}
+      {isDark && (
+        <>
+          <div style={{ position: "absolute", top: "-10%", right: "-5%", width: "40%", height: "40%", borderRadius: "50%", background: "rgba(16,185,129,0.04)", filter: "blur(140px)", pointerEvents: "none", zIndex: 0 }} />
+          <div style={{ position: "absolute", bottom: "-10%", left: "-5%", width: "35%", height: "35%", borderRadius: "50%", background: "rgba(6,95,70,0.05)", filter: "blur(120px)", pointerEvents: "none", zIndex: 0 }} />
+        </>
+      )}
 
       {/* LEFT: Conversation List */}
       <aside style={{
@@ -119,10 +136,15 @@ export default function InboxPage() {
         flexShrink: 0,
         display: "flex",
         flexDirection: "column",
-        borderRight: "1px solid #f1f5f9",
-        background: "#fff",
+        borderRight: `1px solid ${t.border}`,
+        background: t.surface,
+        backdropFilter: isDark ? "blur(14px)" : "none",
+        WebkitBackdropFilter: isDark ? "blur(14px)" : "none",
+        position: "relative",
+        zIndex: 1,
       }}>
         <ConversationList
+          t={t}
           conversations={conversations}
           activeId={activeConversationId}
           isLoading={convLoading}
@@ -135,9 +157,10 @@ export default function InboxPage() {
       </aside>
 
       {/* CENTER: Chat Window */}
-      <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#fff", position: "relative" }}>
+      <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: t.bg, position: "relative", zIndex: 1 }}>
         {activeConversationId ? (
           <ChatWindow
+            t={t}
             conversation={activeConversation}
             messages={messages}
             isLoading={msgsLoading}
@@ -162,18 +185,21 @@ export default function InboxPage() {
           flexShrink: 0,
           display: "flex",
           flexDirection: "column",
-          borderLeft: "1px solid #f1f5f9",
-          background: "#fff",
+          borderLeft: `1px solid ${t.border}`,
+          background: t.surface,
+          backdropFilter: isDark ? "blur(14px)" : "none",
+          WebkitBackdropFilter: isDark ? "blur(14px)" : "none",
+          zIndex: 2,
           ...(isTablet ? {
             position: "absolute",
             right: 0,
             top: 0,
             bottom: 0,
-            zIndex: 20,
-            boxShadow: "-4px 0 24px rgba(0,0,0,0.08)",
+            boxShadow: isDark ? "-8px 0 32px rgba(0,0,0,0.5)" : "-4px 0 24px rgba(0,0,0,0.08)",
           } : {}),
         }}>
           <CustomerDetailsPanel
+            t={t}
             conversation={activeConversation}
             onClose={isTablet ? () => setShowDetailsPanel(false) : undefined}
           />
