@@ -432,7 +432,7 @@ const chatDemoMessages = [
 
 const landingFeatures = [
   { icon: "⚡", title: "Instant AI responses", desc: "GPT-4o understands customer intent in any language and replies in under a second day or night, no queue." },
-  { icon: "🧠", title: "Learns your knowledge base", desc: "Connect your docs, FAQs, and past tickets. SupportAI builds a semantic index and stays up-to-date automatically." },
+  { icon: "🧠", title: "Learns your knowledge base", desc: "Connect your docs, FAQs, and past tickets. Smart Centria builds a semantic index and stays up-to-date automatically." },
   { icon: "🔁", title: "Smart escalation", desc: "When a ticket needs a human, the AI hands off with a full summary so your team never starts from scratch." },
   { icon: "📊", title: "Real-time analytics", desc: "Track CSAT, resolution rates, and deflection by category. Surface patterns before they become problems." },
   { icon: "🔗", title: "Works with your stack", desc: "Native integrations with Intercom, Zendesk, HubSpot, Slack, and 40+ tools. REST API and webhooks included." },
@@ -440,9 +440,9 @@ const landingFeatures = [
 ];
 
 const steps = [
-  { title: "Plug in your knowledge base", desc: "Import from Notion, Confluence, Google Docs, or paste a URL. SupportAI indexes your content and stays in sync.", tag: "Setup · 5 min" },
+  { title: "Plug in your knowledge base", desc: "Import from Notion, Confluence, Google Docs, or paste a URL. Smart Centria indexes your content and stays in sync.", tag: "Setup · 5 min" },
   { title: "Review and tune responses", desc: "Use our editor to approve, edit, or block responses. The AI learns your brand voice and escalation rules.", tag: "Customization" },
-  { title: "Go live on any channel", desc: "Add a widget to your site, connect your existing helpdesk, or use our API to embed SupportAI anywhere.", tag: "Launch · Same day" },
+  { title: "Go live on any channel", desc: "Add a widget to your site, connect your existing helpdesk, or use our API to embed Smart Centria anywhere.", tag: "Launch · Same day" },
   { title: "Watch CSAT climb", desc: "Analytics surface gaps in your docs and opportunities to automate more. Continuous improvement on autopilot.", tag: "Ongoing" },
 ];
 
@@ -453,7 +453,7 @@ const plans = [
 ];
 
 const testimonials = [
-  { quote: "SupportAI resolved 78% of our tickets in the first week. Our team finally has time to work on product.", name: "Mia Chen", role: "Head of Support · Loopify", color: "#e879a0" },
+  { quote: "Smart Centria resolved 78% of our tickets in the first week. Our team finally has time to work on product.", name: "Mia Chen", role: "Head of Support · Loopify", color: "#e879a0" },
   { quote: "Setup took 40 minutes. By end of day we had a live AI agent answering questions in English, Spanish, and French.", name: "James Okafor", role: "CTO · Stackbloom", color: "#6ee7b7" },
   { quote: "We cut average resolution time from 4 hours to 12 seconds. CSAT went up 18 points in the first month.", name: "Sofia Martínez", role: "VP Operations · Courier", color: "#a78bfa" },
 ];
@@ -498,7 +498,7 @@ function ChatBubbleDemo() {
     <div className="lp-chat-widget">
       <div className="lp-chat-header">
         <span className="lp-pill-dot lp-pulse" />
-        SupportAI · Live
+        Smart Centria · Live
       </div>
       <div className="lp-chat-messages">
         {chatDemoMessages.slice(0, visible).map((m, i) => (
@@ -538,7 +538,8 @@ function LandingPage({ onSignIn, onSignUp }) {
 
       {/* ── Nav ── */}
       <nav className={`lp-nav${scrolled ? " lp-nav-solid" : ""}`}>
-        <div className="lp-nav-logo">SupportAI</div>
+        <div className="lp-nav-logo">SmartCentria</div>
+        
         <div className="lp-nav-links">
           {["Features", "How it Works", "Pricing"].map(item => (
             <a key={item} href={`#${item.toLowerCase().replace(/ /g, "-")}`}>{item}</a>
@@ -567,7 +568,7 @@ function LandingPage({ onSignIn, onSignUp }) {
           </h1>
 
           <p className="lp-hero-sub">
-            SupportAI resolves 80% of tickets instantly without a human.
+          Smart Centria resolves 80% of tickets instantly without a human.
             Plug in your knowledge base, go live in minutes.
           </p>
 
@@ -603,7 +604,7 @@ function LandingPage({ onSignIn, onSignUp }) {
                   <div className="lp-demo-bubble ai">
                     <div className="lp-demo-ai-tag">
                       <span className="material-symbols-outlined" style={{ fontSize: 13, color: "#6ee7b7" }}>bolt</span>
-                      SupportAI
+                      Smart Centria
                     </div>
                     I'm looking into order #48291. It's at the regional distribution center and scheduled for delivery tomorrow by 5 PM.
                   </div>
@@ -695,7 +696,7 @@ function LandingPage({ onSignIn, onSignUp }) {
         <div className="lp-inner">
           <div className="lp-section-head">
             <div className="lp-eyebrow">Testimonials</div>
-            <h2 className="lp-section-title lp-serif">Teams love SupportAI</h2>
+            <h2 className="lp-section-title lp-serif">Teams love Smart Centria</h2>
           </div>
           <div className="lp-testi-grid">
             {testimonials.map((t, i) => (
@@ -725,7 +726,7 @@ function LandingPage({ onSignIn, onSignUp }) {
         <div className="lp-cta-glow" />
         <div className="lp-cta-box lp-glass">
           <h2 className="lp-serif">Ready to transform your support?</h2>
-          <p>Join 1,500+ teams delivering world-class customer experiences with SupportAI.</p>
+          <p>Join 1,500+ teams delivering world-class customer experiences with Smart Centria.</p>
           <div className="lp-cta-btns">
             <button className="lp-btn-hero-primary" onClick={onSignUp}>Start for free</button>
             <button className="lp-btn-hero-ghost">Talk to sales</button>
@@ -738,7 +739,7 @@ function LandingPage({ onSignIn, onSignUp }) {
         <div className="lp-footer-inner">
           <div className="lp-footer-top">
             <div className="lp-footer-brand">
-              <div className="lp-footer-logo">SupportAI</div>
+              <div className="lp-footer-logo">Smart Centria</div>
               <p className="lp-footer-desc">
                 Precision in every interaction. Empowering support teams with intelligent automation.
               </p>
@@ -758,7 +759,7 @@ function LandingPage({ onSignIn, onSignUp }) {
             </div>
           </div>
           <div className="lp-footer-bottom">
-            <span>© 2026 SupportAI. All rights reserved.</span>
+            <span>© 2026 Smart Centria. All rights reserved.</span>
             <span>Made with love for support teams everywhere</span>
           </div>
         </div>
