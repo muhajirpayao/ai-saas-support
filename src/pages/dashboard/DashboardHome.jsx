@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabase";
 import { useProfile } from "@/hooks/useProfile";
 import InboxPage from "./Inbox/InboxPage";
 import CustomersPage from "./customers/CustomersPage";
+import KnowledgeBasePage from "./knowledge-base/KnowledgeBasePage";
+
 // ─── THEME TOKENS ─────────────────────────────────────────────────────────────
 // Light: clean slate
 // Dark: obsidian + emerald (matches Landpage / SignupPage)
@@ -831,7 +833,8 @@ export default function Dashboard() {
           {activeNav === "dashboard" && <DashboardPage t={t} firstName={firstName} />}
           {activeNav === "inbox" && <InboxPage t={t} />}
           {activeNav === "customers" && <CustomersPage t={t} />}
-          {!["dashboard", "inbox","customers"].includes(activeNav) && <PlaceholderPage name={pageNames[activeNav]} t={t} />}
+          {activeNav === "knowledge" && <KnowledgeBasePage t={t} />}
+          {!["dashboard", "inbox","customers","knowledge"].includes(activeNav) && <PlaceholderPage name={pageNames[activeNav]} t={t} />}
         </div>
       </div>
     </>

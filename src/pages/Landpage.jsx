@@ -447,9 +447,9 @@ const steps = [
 ];
 
 const plans = [
-  { name: "Starter", price: "49",  desc: "For small teams just getting started.", features: ["500 AI resolutions/mo", "1 knowledge base", "Email & chat widget", "Basic analytics", "Community support"], cta: "Start free trial", highlight: false },
-  { name: "Growth",  price: "149", desc: "For growing teams that need more power.", features: ["5,000 AI resolutions/mo", "5 knowledge bases", "All channels + Slack", "Advanced analytics", "Smart escalation", "Priority support"], cta: "Start free trial", highlight: true, badge: "Most popular" },
-  { name: "Enterprise", price: "499", desc: "For large teams with advanced needs.", features: ["Unlimited AI resolutions", "Unlimited knowledge bases", "All integrations + API", "Custom AI personas", "SSO + SOC 2", "Dedicated CSM"], cta: "Talk to sales", highlight: false },
+  { name: "Starter", price: "49",  desc: "For small teams just getting started.", features: ["500 AI resolutions/mo", "1 knowledge base", "Email & chat widget", "Basic analytics", "Community support"], cta: "Choose Plan", highlight: false },
+  { name: "Growth",  price: "149", desc: "For growing teams that need more power.", features: ["5,000 AI resolutions/mo", "5 knowledge bases", "All channels + Slack", "Advanced analytics", "Smart escalation", "Priority support"], cta: "Choose Plan", highlight: true, badge: "Most popular" },
+  { name: "Enterprise", price: "499", desc: "For large teams with advanced needs.", features: ["Unlimited AI resolutions", "Unlimited knowledge bases", "All integrations + API", "Custom AI personas", "SSO + SOC 2", "Dedicated CSM"], cta: "Choose Plan", highlight: false },
 ];
 
 const testimonials = [
